@@ -351,7 +351,7 @@ def send_invite_link(user_id):
            f"Taklifnoma havolasi: {ref_link}")
     bot.send_message(user_id, msg)
 
-# Broadcast funksiyasi
+# Broadcast funksiyasi (ReplyKeyboardMarkup bilan)
 @bot.message_handler(commands=['broadcast'])
 def handle_broadcast(message):
     try:
@@ -359,37 +359,46 @@ def handle_broadcast(message):
             bot.reply_to(message, "Bu buyruq faqat admin uchun mavjud!")
             return
         
-        markup = telebot.types.InlineKeyboardMarkup()
-        markup.add(telebot.types.InlineKeyboardButton("Matn", callback_data='broadcast_text'))
-        markup.add(telebot.types.InlineKeyboardButton("Rasm", callback_data='broadcast_photo'))
-        markup.add(telebot.types.InlineKeyboardButton("Video", callback_data='broadcast_video'))
+        # ReplyKeyboardMarkup yaratish
+        markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+        markup.add(
+            telebot.types.KeyboardButton("Matn"),
+            telebot.types.KeyboardButton("Rasm"),
+            telebot.types.KeyboardButton("Video")
+        )
         bot.reply_to(message, "Broadcast turini tanlang:", reply_markup=markup)
+        
+        # Keyingi xabarni olish uchun handler qo‘shish
+        bot.register_next_step_handler(message, process_broadcast_type)
         
     except Exception as e:
         bot.reply_to(message, f"Xatolik yuz berdi: {str(e)}")
         bot.send_message(OWNER_ID, f"Broadcast xatoligi: {str(e)}")
 
-@bot.callback_query_handler(func=lambda call: call.data in ['broadcast_text', 'broadcast_photo', 'broadcast_video'])
-def broadcast_type_handler(call):
+def process_broadcast_type(message):
     try:
-        if call.message.chat.id != OWNER_ID:
+        if message.chat.id != OWNER_ID:
             return
         
-        broadcast_type = call.data.split('_')[1]
-        if broadcast_type == 'text':
-            msg = bot.send_message(call.message.chat.id, "Yuboriladigan matnni kiriting (Markdown qo'llab-quvvatlanadi):\n"
-                                                       "Filtrlash uchun: '/filter <ball>' (masalan, /filter 10)")
+        broadcast_type = message.text
+        if broadcast_type not in ["Matn", "Rasm", "Video"]:
+            bot.reply_to(message, "Iltimos, to‘g‘ri tanlov qiling! Qayta urining:", reply_markup=telebot.types.ReplyKeyboardRemove())
+            handle_broadcast(message)  # Qayta menyu ko‘rsatish
+            return
+
+        if broadcast_type == "Matn":
+            msg = bot.send_message(message.chat.id, "Yuboriladigan matnni kiriting (Markdown qo'llab-quvvatlanadi):\nFiltrlash uchun: '/filter <ball>' (masalan, /filter 10)")
             bot.register_next_step_handler(msg, lambda m: process_broadcast(m, 'text'))
-        elif broadcast_type == 'photo':
-            msg = bot.send_message(call.message.chat.id, "Yuboriladigan rasmni yuklang va izoh qo'shing (ixtiyoriy):")
+        elif broadcast_type == "Rasm":
+            msg = bot.send_message(message.chat.id, "Yuboriladigan rasmni yuklang va izoh qo'shing (ixtiyoriy):")
             bot.register_next_step_handler(msg, lambda m: process_broadcast(m, 'photo'))
-        elif broadcast_type == 'video':
-            msg = bot.send_message(call.message.chat.id, "Yuboriladigan videoni yuklang va izoh qo'shing (ixtiyoriy):")
+        elif broadcast_type == "Video":
+            msg = bot.send_message(message.chat.id, "Yuboriladigan videoni yuklang va izoh qo'shing (ixtiyoriy):")
             bot.register_next_step_handler(msg, lambda m: process_broadcast(m, 'video'))
         
-        bot.answer_callback_query(call.id)
     except Exception as e:
-        bot.send_message(call.message.chat.id, f"Xatolik: {str(e)}")
+        bot.reply_to(message, f"Xatolik yuz berdi: {str(e)}")
+        bot.send_message(OWNER_ID, f"Broadcast xatoligi: {str(e)}")
 
 def process_broadcast(message, broadcast_type):
     try:
