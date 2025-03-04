@@ -1,22 +1,43 @@
 import json
 import telebot
 from flask import Flask, request
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+import os
+from dotenv import load_dotenv
+
+# Muhit o'zgaruvchilarini yuklash
+load_dotenv()
 
 # TOKEN DETAILS
 TOKEN = "Ball"
-BOT_TOKEN = "7611666697:AAH6aLkRF7jYBmvEWAHWnePLz6OEb_49VOI"
-PAYMENT_CHANNEL = "@medstone_usmle"  # Add payment channel here including the '@' sign
-OWNER_ID = 725821571  # Write owner's user id here, get it from @MissRose_Bot by /id
-CHANNELS = ["@medstone_usmle"]  # Add channels to be checked here in the format - ["Channel 1", "Channel 2"]
-Daily_bonus = 1  # Put daily bonus amount here
-Per_Refer = 1  # Add per refer bonus here
+BOT_TOKEN = os.getenv("BOT_TOKEN", "7611666697:AAH6aLkRF7jYBmvEWAHWnePLz6OEb_49VOI")
+PAYMENT_CHANNEL = "@medstone_usmle"
+OWNER_ID = int(os.getenv("OWNER_ID", 725821571))
+CHANNELS = ["@medstone_usmle"]
+Daily_bonus = 1
+Per_Refer = 1
 
 bot = telebot.TeleBot(BOT_TOKEN)
 app = Flask(__name__)
 
-ADMIN_GROUP_USERNAME = "@endocrineqatnashchi"  # Replace with your admin group username
+ADMIN_GROUP_USERNAME = "@endocrineqatnashchi"
 
-# Log yozuvlarini saqlash uchun ro'yxat
+# Google Sheets sozlamalari
+SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+SPREADSHEET_NAME = os.getenv("SPREADSHEET_NAME", "Marafon")  # Jadval nomi "Marafon" qilib o'zgartirildi
+
+# Google Sheets autentifikatsiyasi
+creds_json = os.getenv("GOOGLE_SHEETS_CREDS")
+if creds_json:
+    creds_dict = json.loads(creds_json)
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, SCOPE)
+    client = gspread.authorize(creds)
+    sheet = client.open(SPREADSHEET_NAME).sheet1
+else:
+    raise ValueError("Google Sheets credentials not found in environment variables!")
+
+# Log yozuvlari uchun ro'yxat
 log_messages = []
 
 @app.route('/')
@@ -40,7 +61,7 @@ def receive_update():
 def get_logs():
     return '<br>'.join(log_messages)
 
-# Your existing bot functions go here...
+# Kanal tekshiruvi
 def check(id):
     for i in CHANNELS:
         check = bot.get_chat_member(i, id)
@@ -61,11 +82,35 @@ def menu(id):
         keyboard.row('📊 Statistika')
     bot.send_message(id, "Asosiy menyu👇", reply_markup=keyboard)
 
+# Google Sheets-dan ma'lumotlarni yuklash
 def load_users_data():
     try:
-        with open('users.json', 'r') as f:
-            return json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
+        records = sheet.get_all_records()
+        data = {
+            "referred": {},
+            "referby": {},
+            "checkin": {},
+            "DailyQuiz": {},
+            "balance": {},
+            "withd": {},
+            "id": {},
+            "total": 0,
+            "refer": {}
+        }
+        for row in records:
+            user_id = str(row['user_id'])
+            data['referred'][user_id] = row.get('referred', 0)
+            data['referby'][user_id] = row.get('referby', user_id)
+            data['checkin'][user_id] = row.get('checkin', 0)
+            data['DailyQuiz'][user_id] = row.get('DailyQuiz', "0")
+            data['balance'][user_id] = row.get('balance', 0)
+            data['withd'][user_id] = row.get('withd', 0)
+            data['id'][user_id] = row.get('id', 0)
+            data['refer'][user_id] = row.get('refer', False)
+            data['total'] = max(data['total'], row.get('id', 0))
+        return data
+    except Exception as e:
+        print(f"Error loading data from Google Sheets: {e}")
         return {
             "referred": {},
             "referby": {},
@@ -78,9 +123,27 @@ def load_users_data():
             "refer": {}
         }
 
+# Google Sheets-ga ma'lumotlarni saqlash
 def save_users_data(data):
-    with open('users.json', 'w') as f:
-        json.dump(data, f)
+    try:
+        sheet.clear()
+        headers = ['user_id', 'referred', 'referby', 'checkin', 'DailyQuiz', 'balance', 'withd', 'id', 'refer']
+        sheet.append_row(headers)
+        for user_id in data['referred']:
+            row = [
+                user_id,
+                data['referred'].get(user_id, 0),
+                data['referby'].get(user_id, user_id),
+                data['checkin'].get(user_id, 0),
+                data['DailyQuiz'].get(user_id, "0"),
+                data['balance'].get(user_id, 0),
+                data['withd'].get(user_id, 0),
+                data['id'].get(user_id, 0),
+                data['refer'].get(user_id, False)
+            ]
+            sheet.append_row(row)
+    except Exception as e:
+        print(f"Error saving data to Google Sheets: {e}")
 
 def send_videos(user_id, video_file_ids):
     for video_file_id in video_file_ids:
@@ -90,24 +153,29 @@ def send_gift_video(user_id):
     data = load_users_data()
     balance = data['balance'].get(str(user_id), 0)
     if 0 <= balance < 10:
-        video_file_ids = ["https://t.me/marafonbotbazasi/7"]  # Replace with actual video file ID
+        video_file_ids = ["https://t.me/marafonbotbazasi/7"]
         send_videos(user_id, video_file_ids)
         bot.send_message(user_id, '1-dars video sizga jo‘natildi.')
     elif 10 <= balance < 20:
-        video_file_ids = [
-            "https://t.me/marafonbotbazasi/7",  # Replace with actual video file ID
-            "https://t.me/marafonbotbazasi/8"   # Replace with actual video file ID
-        ]
+        video_file_ids = ["https://t.me/marafonbotbazasi/7", "https://t.me/marafonbotbazasi/8"]
         send_videos(user_id, video_file_ids)
         bot.send_message(user_id, '1-dars va 2-dars videolar sizga jo‘natildi.')
-    elif balance >= 20:
-        video_file_ids = [
-            "https://t.me/marafonbotbazasi/7",  # Replace with actual video file ID
-            "https://t.me/marafonbotbazasi/8",  # Replace with actual video file ID
-            "https://t.me/marafonbotbazasi/9"   # Replace with actual video file ID
-        ]
+    elif 20 <= balance < 30:
+        video_file_ids = ["https://t.me/marafonbotbazasi/7", "https://t.me/marafonbotbazasi/8", "https://t.me/marafonbotbazasi/9"]
         send_videos(user_id, video_file_ids)
         bot.send_message(user_id, '1-dars, 2-dars, va 3-dars videolar sizga jo‘natildi.')
+    elif 30 <= balance < 40:
+        video_file_ids = ["https://t.me/marafonbotbazasi/7", "https://t.me/marafonbotbazasi/8", "https://t.me/marafonbotbazasi/9"]
+        send_videos(user_id, video_file_ids)
+        bot.send_message(user_id, '1-dars, 2-dars, 3-dars va 4-dars videolari sizga jo‘natildi.') 
+    elif 40 <= balance < 50:
+        video_file_ids = ["https://t.me/marafonbotbazasi/7", "https://t.me/marafonbotbazasi/8", "https://t.me/marafonbotbazasi/9"]
+        send_videos(user_id, video_file_ids)
+        bot.send_message(user_id, '1-dars, 2-dars, 3-dars, 4-dars va 5-dars videolari sizga jo‘natildi.') 
+    elif 50 <= balance < 60:
+        video_file_ids = ["https://t.me/marafonbotbazasi/7", "https://t.me/marafonbotbazasi/8", "https://t.me/marafonbotbazasi/9"]
+        send_videos(user_id, video_file_ids)
+        bot.send_message(user_id, '1-dars, 2-dars, 3-dars, 4-dars, 5-dars va 6-dars videolari sizga jo‘natildi.')
     else:
         bot.send_message(user_id, 'Kechirasiz, ballaringiz yetarli emas.')
 
@@ -127,7 +195,7 @@ def start(message):
             data['referby'][user] = referrer if referrer else user
             if referrer and referrer in data['referred']:
                 data['referred'][referrer] += 1
-                data['balance'][referrer] += Per_Refer
+                data['balance'][referrer] = data['balance'].get(referrer, 0) + Per_Refer
         if user not in data['checkin']:
             data['checkin'][user] = 0
         if user not in data['DailyQuiz']:
@@ -145,22 +213,20 @@ def start(message):
         markup.add(telebot.types.InlineKeyboardButton(
             text='Obunani tekshirish', callback_data='check'))
         msg_start = """Tabriklayman! Siz marafon qatnashchisi bo'lishga yaqin qoldingiz.
-7 kunlik bepul marafon davomida quyidagi mavzularni o'rganamiz:
+Biokimyo bo'yicha 7 kunlik bepul marafon davomida quyidagi mavzularni o'rganamiz:
 
-✅- Diabet
-\n✅- Diabet skriningi
-\n✅- PCOS
-\n✅- Giperandrogenizm
-\n✅- Qandsiz diabet
-\n✅- Osteoporoz
+✅- DNK tuzilishi va klinik ahamiyati
+\n✅- DNK metillanishining klinikada muhimligi
+\n✅- Purin metabolizmi va uning klinik ahamiyati
+\n✅- Podagra kasalligi
+\n✅- Podagra kasalligining davosi
+\n✅- Soxta podagra kasalligi
 
 Shu mavzulardagi eng so'nggi yangiliklarni o'zlashtirishni xohlasangiz hoziroq marafon bo'lib o'tadigan kanalga qo'shiling."""
         bot.send_message(user, msg_start, reply_markup=markup)
     except Exception as e:
         bot.send_message(message.chat.id, "Bu buyruqda xatolik bor, iltimos admin xatoni tuzatishini kuting")
-        bot.send_message(OWNER_ID,
-                         "Botingizda xatolik bor, uni tezda tuzating!\n Xato komandada: " + message.text + "\nXatolik: " + str(e))
-        return
+        bot.send_message(OWNER_ID, f"Botingizda xatolik bor: {str(e)}")
 
 @bot.callback_query_handler(func=lambda call: True)
 def query_handler(call):
@@ -194,11 +260,9 @@ def query_handler(call):
                         )
                     save_users_data(data)
 
-                # Send message asking for phone number confirmation
                 markup = telebot.types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
                 markup.add(telebot.types.KeyboardButton(text='Raqamni ulashish', request_contact=True))
                 bot.send_message(call.message.chat.id, f"Salom, @{username}! \nSizga bonuslarimizni bera olishimiz uchun raqamingizni tasdiqlay olasizmi?\nPastdagi maxsus tugmani bossangiz kifoya.", reply_markup=markup)
-
             else:
                 bot.answer_callback_query(callback_query_id=call.id, text='Siz hali kanalga qo‘shilmadingiz')
                 markup = telebot.types.InlineKeyboardMarkup()
@@ -208,8 +272,7 @@ def query_handler(call):
                 bot.send_message(call.message.chat.id, msg_start, reply_markup=markup)
     except Exception as e:
         bot.send_message(call.message.chat.id, "Bu buyruqda xatolik bor, iltimos admin xatoni tuzatishini kuting")
-        bot.send_message(OWNER_ID, f"Botingizda xatolik bor, uni tezda tuzating!\n Xato komandada: {call.data}\nXatolik: {str(e)}")
-        return
+        bot.send_message(OWNER_ID, f"Botingizda xatolik bor: {str(e)}")
 
 @bot.message_handler(content_types=['contact'])
 def contact(message):
@@ -218,10 +281,8 @@ def contact(message):
         username = message.from_user.username
         bot.send_message(ADMIN_GROUP_USERNAME, f"Foydalanuvchi: @{username}\nTelefon raqami: {contact}")
 
-        # Xabar va inline tugmalar
         inline_markup = telebot.types.InlineKeyboardMarkup()
         inline_markup.add(telebot.types.InlineKeyboardButton(text="Sovg'angiz👇", callback_data='gift'))
-
         gift_message = """Siz uchun tayyorlab qo'ygan sovg'alarimizni kutib oling🤗
 
 1️⃣. Kanalimizning yangi mehmonlari uchun Shoxrux Botirov tomonidan maxsus tayyorlangan bonus video darsni raqamingizni tasdiqlash orqali qabul qilib oling
@@ -233,13 +294,16 @@ Uni pastdagi "Raqamni ulashish📞 va Mening sovgʻam🎁" tugmasini bosish orqa
 
 4️⃣. 30 ta odam qo'shish orqali yuqoridagi pullik kanalga tegishli 3 ta darsni batafsil case tahlillari bilan BEPUL qo'lga kiritish imkoniyati.
 
+Shu tariqa har safar 10 ta odam sizning havolangiz orqali kanalga qo'shilsa yangi video leksiyalarni qo'lga kiritib boraverasiz.
+
+Xatto butun boshli kursni ham qo'lga kirita olasiz.🤗
+
 Taklif qilish uchun maxsus linkingizni oling va do'stlaringizni jamoamizga taklif qiling.
 Sizning maxsus linkingiz bu faqat sizga tegishli havola bo'lib, u orqali kanalga qo'shilgan har bir doʻstingiz sizga 1️⃣ ball olib keladi.
 
 Maxsus linkingizni olish uchun pastdagi "Maxsus linkim" tugmasini bosing.
 
 Ballaringizni ko'rish uchun pastdagi "Mening hisobim" tugmasini bosing"""
-
         bot.send_message(message.chat.id, gift_message, reply_markup=inline_markup)
         menu(message.chat.id)
 
@@ -266,7 +330,7 @@ def account_or_ref_link_handler(call):
 
     except Exception as e:
         bot.send_message(call.message.chat.id, "Bu buyruqda xatolik bor, iltimos admin xatoni tuzatishini kuting")
-        bot.send_message(OWNER_ID, f"Botingizda xatolik bor, uni tezda tuzating!\n Xato komandada: {call.data}\nXatolik: {str(e)}")
+        bot.send_message(OWNER_ID, f"Botingizda xatolik bor: {str(e)}")
 
 def send_invite_link(user_id):
     data = load_users_data()
@@ -278,10 +342,10 @@ def send_invite_link(user_id):
     save_users_data(data)
 
     ref_link = f'https://telegram.me/{bot_name}?start={user_id}'
-    msg = (f"ENDOKRINOLOGIYA BOʻYICHA OCHIQ DARSLAR\n\nKlinik Endokrinologiya bo'yicha unikal hisoblangan kurs asosida tayyorlangan BEPUL marafonda "
+    msg = (f"Biokimyo bo'yicha OCHIQ DARSLAR\n\nUSMLE step 1 bo'yicha unikal hisoblangan kurslar asosida tayyorlangan BEPUL marafonda "
            f"qatnashmoqchi bo'lsangiz quyidagi havola orqali jamoamizga qo'shiling!\n"
            f"Vaqt va joylar chegaralangan ekanligini unutmang azizlar!\n"
-           f"Yana bir marta eslatib o'taman Marafon hamma uchun ochiq va bepul.\n\n"
+           f"Marafon bakalavr, ordinator va shifokorlar uchun mo'ljallangan va butunlay bepul.\n\n"
            f"Taklifnoma havolasi: {ref_link}")
     bot.send_message(user_id, msg)
 
@@ -297,33 +361,28 @@ def send_text(message):
             markup.add(telebot.types.InlineKeyboardButton(text=f"Balans: {balance} Ball", callback_data='balance'))
             msg = f"Foydalanuvchi: {message.from_user.username}\nBalans: {balance} {TOKEN}"
             bot.send_message(message.chat.id, msg, reply_markup=markup)
-        if message.text == '🙌🏻 Maxsus linkim':
+        elif message.text == '🙌🏻 Maxsus linkim':
             send_invite_link(message.chat.id)
-        if message.text == '🎁 Mening sovg\'am':
+        elif message.text == '🎁 Mening sovg\'am':
             send_gift_video(message.chat.id)
-        if message.text == "📊 Statistika":
+        elif message.text == "📊 Statistika":
             if message.chat.id == OWNER_ID:
                 user_id = message.chat.id
-                user = str(user_id)
                 data = load_users_data()
                 msg = "Jami foydalanuvchilar: {} foydalanuvchilar"
                 msg = msg.format(data['total'])
                 bot.send_message(user_id, msg)
             else:
                 bot.send_message(message.chat.id, "Ushbu buyruq faqat bot egasiga mavjud.")
-            return
     except Exception as e:
         bot.send_message(message.chat.id, "Bu buyruqda xatolik bor, iltimos admin xatoni tuzatishini kuting")
-        bot.send_message(OWNER_ID, "Botingizda xatolik bor, uni tezda tuzating!\n Xato komandada: " + message.text + "\nXatolik: " + str(e))
-        return
+        bot.send_message(OWNER_ID, f"Botingizda xatolik bor: {str(e)}")
 
 @bot.message_handler(content_types=['video'])
 def handle_video(message):
-    # Video fayl ID sini olish
     video_file_id = message.video.file_id
     bot.send_message(message.chat.id, f"Video fayl ID si: {video_file_id}")
 
 if __name__ == '__main__':
-    import os
     port = int(os.environ.get('PORT', 10000))
     app.run(host='0.0.0.0', port=port)
