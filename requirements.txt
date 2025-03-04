@@ -1,3 +1,7 @@
 Flask
 pyTelegramBotAPI
 gunicorn
+telebot
+flask
+gspread
+oauth2client
