@@ -5,6 +5,7 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import os
 from dotenv import load_dotenv
+import time
 
 # Muhit o'zgaruvchilarini yuklash
 load_dotenv()
@@ -25,7 +26,7 @@ ADMIN_GROUP_USERNAME = "@endocrineqatnashchi"
 
 # Google Sheets sozlamalari
 SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-SPREADSHEET_NAME = os.getenv("SPREADSHEET_NAME", "Marafon")  # Jadval nomi "Marafon" qilib o'zgartirildi
+SPREADSHEET_NAME = os.getenv("SPREADSHEET_NAME", "Marafon")
 
 # Google Sheets autentifikatsiyasi
 creds_json = os.getenv("GOOGLE_SHEETS_CREDS")
@@ -80,6 +81,7 @@ def menu(id):
     keyboard.row('🎁 Mening sovg\'am')
     if id == OWNER_ID:
         keyboard.row('📊 Statistika')
+        keyboard.row('📢 Broadcast')
     bot.send_message(id, "Asosiy menyu👇", reply_markup=keyboard)
 
 # Google Sheets-dan ma'lumotlarni yuklash
@@ -349,6 +351,117 @@ def send_invite_link(user_id):
            f"Taklifnoma havolasi: {ref_link}")
     bot.send_message(user_id, msg)
 
+# Broadcast funksiyasi
+@bot.message_handler(commands=['broadcast'])
+def handle_broadcast(message):
+    try:
+        if message.chat.id != OWNER_ID:
+            bot.reply_to(message, "Bu buyruq faqat admin uchun mavjud!")
+            return
+        
+        markup = telebot.types.InlineKeyboardMarkup()
+        markup.add(telebot.types.InlineKeyboardButton("Matn", callback_data='broadcast_text'))
+        markup.add(telebot.types.InlineKeyboardButton("Rasm", callback_data='broadcast_photo'))
+        markup.add(telebot.types.InlineKeyboardButton("Video", callback_data='broadcast_video'))
+        bot.reply_to(message, "Broadcast turini tanlang:", reply_markup=markup)
+        
+    except Exception as e:
+        bot.reply_to(message, f"Xatolik yuz berdi: {str(e)}")
+        bot.send_message(OWNER_ID, f"Broadcast xatoligi: {str(e)}")
+
+@bot.callback_query_handler(func=lambda call: call.data in ['broadcast_text', 'broadcast_photo', 'broadcast_video'])
+def broadcast_type_handler(call):
+    try:
+        if call.message.chat.id != OWNER_ID:
+            return
+        
+        broadcast_type = call.data.split('_')[1]
+        if broadcast_type == 'text':
+            msg = bot.send_message(call.message.chat.id, "Yuboriladigan matnni kiriting (Markdown qo'llab-quvvatlanadi):\n"
+                                                       "Filtrlash uchun: '/filter <ball>' (masalan, /filter 10)")
+            bot.register_next_step_handler(msg, lambda m: process_broadcast(m, 'text'))
+        elif broadcast_type == 'photo':
+            msg = bot.send_message(call.message.chat.id, "Yuboriladigan rasmni yuklang va izoh qo'shing (ixtiyoriy):")
+            bot.register_next_step_handler(msg, lambda m: process_broadcast(m, 'photo'))
+        elif broadcast_type == 'video':
+            msg = bot.send_message(call.message.chat.id, "Yuboriladigan videoni yuklang va izoh qo'shing (ixtiyoriy):")
+            bot.register_next_step_handler(msg, lambda m: process_broadcast(m, 'video'))
+        
+        bot.answer_callback_query(call.id)
+    except Exception as e:
+        bot.send_message(call.message.chat.id, f"Xatolik: {str(e)}")
+
+def process_broadcast(message, broadcast_type):
+    try:
+        if message.chat.id != OWNER_ID:
+            return
+
+        data = load_users_data()
+        user_ids = list(data['referred'].keys())
+        
+        # Filtrlash
+        min_balance = 0
+        if broadcast_type == 'text' and '/filter' in message.text:
+            try:
+                min_balance = int(message.text.split('/filter')[1].split()[0])
+                message.text = message.text.split('/filter')[0].strip()
+                user_ids = [uid for uid in user_ids if data['balance'].get(uid, 0) >= min_balance]
+            except:
+                bot.reply_to(message, "Filtrda xato! /filter <ball> formatidan foydalaning.")
+                return
+
+        if not user_ids:
+            bot.reply_to(message, "Foydalanuvchilar topilmadi!")
+            return
+
+        success_count = 0
+        fail_count = 0
+        blocked_users = []
+
+        bot.reply_to(message, f"Broadcast boshlandi. Jami {len(user_ids)} foydalanuvchi.")
+
+        for user_id in user_ids:
+            try:
+                if broadcast_type == 'text':
+                    bot.send_message(int(user_id), message.text, parse_mode='Markdown')
+                elif broadcast_type == 'photo' and message.photo:
+                    caption = message.caption or ""
+                    bot.send_photo(int(user_id), message.photo[-1].file_id, caption=caption, parse_mode='Markdown')
+                elif broadcast_type == 'video' and message.video:
+                    caption = message.caption or ""
+                    bot.send_video(int(user_id), message.video.file_id, caption=caption, parse_mode='Markdown')
+                success_count += 1
+                time.sleep(0.05)  # Telegram API limiti uchun kechikish
+            except Exception as e:
+                fail_count += 1
+                if "Forbidden" in str(e):
+                    blocked_users.append(user_id)
+                print(f"Xato {user_id} uchun: {str(e)}")
+
+        # Bloklangan foydalanuvchilarni o'chirish
+        if blocked_users:
+            for user_id in blocked_users:
+                if user_id in data['referred']:
+                    del data['referred'][user_id]
+                    del data['referby'][user_id]
+                    del data['balance'][user_id]
+                    del data['checkin'][user_id]
+                    del data['DailyQuiz'][user_id]
+                    del data['withd'][user_id]
+                    del data['id'][user_id]
+                    del data['refer'][user_id]
+            save_users_data(data)
+
+        result_msg = f"Broadcast yakunlandi!\n" \
+                    f"Muvafaqiyatli: {success_count}\n" \
+                    f"Muvaffaqiyatsiz: {fail_count}\n" \
+                    f"Bloklangan foydalanuvchilar: {len(blocked_users)}"
+        bot.send_message(OWNER_ID, result_msg)
+
+    except Exception as e:
+        bot.reply_to(message, f"Xatolik yuz berdi: {str(e)}")
+        bot.send_message(OWNER_ID, f"Broadcast xatoligi: {str(e)}")
+
 @bot.message_handler(content_types=['text'])
 def send_text(message):
     try:
@@ -374,6 +487,11 @@ def send_text(message):
                 bot.send_message(user_id, msg)
             else:
                 bot.send_message(message.chat.id, "Ushbu buyruq faqat bot egasiga mavjud.")
+        elif message.text == "📢 Broadcast":
+            if message.chat.id == OWNER_ID:
+                bot.send_message(message.chat.id, "Broadcast uchun /broadcast buyrug'ini ishlatishingiz mumkin!")
+            else:
+                bot.send_message(message.chat.id, "Bu buyruq faqat admin uchun!")
     except Exception as e:
         bot.send_message(message.chat.id, "Bu buyruqda xatolik bor, iltimos admin xatoni tuzatishini kuting")
         bot.send_message(OWNER_ID, f"Botingizda xatolik bor: {str(e)}")
