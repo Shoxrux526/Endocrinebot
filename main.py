@@ -461,11 +461,16 @@ def process_broadcast(message, broadcast_type):
                     del data['refer'][user_id]
             save_users_data(data)
 
+        # Yakunlov xabarini admin uchun yuborish va menyu qaytarish
         result_msg = f"Broadcast yakunlandi!\n" \
                     f"Muvafaqiyatli: {success_count}\n" \
                     f"Muvaffaqiyatsiz: {fail_count}\n" \
                     f"Bloklangan foydalanuvchilar: {len(blocked_users)}"
         bot.send_message(OWNER_ID, result_msg)
+        
+        # Adminni asosiy menyu ga qaytarish
+        bot.send_message(OWNER_ID, "Broadcast yakunlandi. Asosiy menyu:", reply_markup=telebot.types.ReplyKeyboardRemove())
+        menu(OWNER_ID)  # Asosiy menyu tugmalarini qayta ko‘rsatish
 
     except Exception as e:
         bot.reply_to(message, f"Xatolik yuz berdi: {str(e)}")
