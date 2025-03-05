@@ -157,25 +157,25 @@ def send_gift_video(user_id):
     if 0 <= balance < 10:
         video_file_ids = ["https://t.me/marafonbotbazasi/10", "https://t.me/marafonbotbazasi/11"]
         send_videos(user_id, video_file_ids)
-        bot.send_message(user_id, '🎥 **1\-dars video** sizga muvaffaqiyatli jo‘natildi\! 🚀\n\nKeyingi darslarni olish uchun do‘stlaringizni taklif qiling\!', parse_mode='MarkdownV2')
+        bot.send_message(user_id, '🎥 **1\-dars video** sizga muvaffaqiyatli jo\'natildi\! 🚀\n\nKeyingi darslarni olish uchun do\'stlaringizni taklif qiling\!', parse_mode='MarkdownV2')
     elif 10 <= balance < 20:
         video_file_ids = ["https://t.me/marafonbotbazasi/11", "https://t.me/marafonbotbazasi/12"]
         send_videos(user_id, video_file_ids)
-        bot.send_message(user_id, '🎥 **1\-dars va 2\-dars videolar** sizga jo‘natildi\! ✨\n\nYana ko‘proq darslarni qo'lga kiritish uchun do‘stlaringizni taklif qiling\!', parse_mode='MarkdownV2')
+        bot.send_message(user_id, '🎥 **1\-dars va 2\-dars videolar** sizga jo\'natildi\! ✨\n\nYana ko\'proq darslarni qo\'lga kiritish uchun do\'stlaringizni taklif qiling\!', parse_mode='MarkdownV2')
     elif 20 <= balance < 30:
         video_file_ids = ["https://t.me/marafonbotbazasi/11", "https://t.me/marafonbotbazasi/12", "https://t.me/marafonbotbazasi/13"]
         send_videos(user_id, video_file_ids)
-        bot.send_message(user_id, '🎥 **1\-dars, 2\-dars va 3\-dars videolar** sizga jo‘natildi\! 👏\n\nSizning samaradorligingizga havas qilsa arziydi', parse_mode='MarkdownV2')
+        bot.send_message(user_id, '🎥 **1\-dars, 2\-dars va 3\-dars videolar** sizga jo\'natildi\! 👏\n\nSizning samaradorligingizga havas qilsa arziydi\!', parse_mode='MarkdownV2')
     elif 30 <= balance < 40:
         video_file_ids = ["https://t.me/marafonbotbazasi/11", "https://t.me/marafonbotbazasi/12", "https://t.me/marafonbotbazasi/13", "https://t.me/marafonbotbazasi/14"]
         send_videos(user_id, video_file_ids)
-        bot.send_message(user_id, '🎥 **1\-dars, 2\-dars, 3\-dars va 4\-dars videolar** sizga jo‘natildi\! 🌟\n\nButun kursni qo'lga kiritishga yaqinlashib qoldingiz\!', parse_mode='MarkdownV2')
+        bot.send_message(user_id, '🎥 **1\-dars, 2\-dars, 3\-dars va 4\-dars videolar** sizga jo\'natildi\! 🌟\n\nButun kursni qo\'lga kiritishga yaqinlashib qoldingiz\!', parse_mode='MarkdownV2')
     elif 40 <= balance < 50:
         video_file_ids = ["https://t.me/marafonbotbazasi/11", "https://t.me/marafonbotbazasi/12", "https://t.me/marafonbotbazasi/13", "https://t.me/marafonbotbazasi/14", "https://t.me/marafonbotbazasi/15"]
         send_videos(user_id, video_file_ids)
-        bot.send_message(user_id, '🎥 **1\-dars, 2\-dars, 3\-dars, 4\-dars va 5\-dars videolar** sizga jo‘natildi\! 🎉\nTabriklaymiz, Siz juda yaxshi natija ko'rsatyabsiz\!', parse_mode='MarkdownV2')
+        bot.send_message(user_id, '🎥 **1\-dars, 2\-dars, 3\-dars, 4\-dars va 5\-dars videolar** sizga jo\'natildi\! 🎉\nTabriklaymiz, Siz juda yaxshi natija ko\'rsatyabsiz\!', parse_mode='MarkdownV2')
     else:
-        bot.send_message(user_id, '⚠️ **Kechirasiz**, ballaringiz yetarli emas\!\n🚀 Do‘stlaringizni taklif qilib, ko‘proq ball to‘plang\!', parse_mode='MarkdownV2')
+        bot.send_message(user_id, '⚠️ **Kechirasiz**, ballaringiz yetarli emas\!\n🚀 Do\'stlaringizni taklif qilib, ko\'proq ball to\'plang\!', parse_mode='MarkdownV2')
 
 @bot.message_handler(commands=['start'])
 def start(message):
@@ -207,19 +207,19 @@ def start(message):
         save_users_data(data)
         markup = telebot.types.InlineKeyboardMarkup()
         markup.add(telebot.types.InlineKeyboardButton(
-            text='📢 Marafon kanaliga qo‘shilish', url='https://t.me/medstone_usmle'))
+            text='📢 Marafon kanaliga qo\'shilish', url='https://t.me/medstone_usmle'))
         markup.add(telebot.types.InlineKeyboardButton(
             text='✅ Obunani tekshirish', callback_data='check'))
-        msg_start = """🎉 **Tabriklaymiz\!** Siz marafon qatnashchisi bo‘lishga juda yaqin qoldingiz\!  
+        msg_start = """🎉 **Tabriklaymiz\!** Siz marafon qatnashchisi bo\'lishga juda yaqin qoldingiz\!
 
-📚 **Biokimyo bo‘yicha 7 kunlik BEPUL marafon** davomida quyidagilarni o‘rganamiz:  
-\n\n✅ **DNK tuzilishi** va uning klinik ahamiyati  
-\n✅ **DNK metillanishi**ning klinikada muhimligi  
-\n✅ **Purin metabolizmi** va uning klinik ahamiyati  
-\n✅ **Podagra kasalligi** haqida  
-\n✅ **Podagra davosi**  
+📚 **Biokimyo bo\'yicha 7 kunlik BEPUL marafon** davomida quyidagilarni o\'rganamiz:
+\n\n✅ **DNK tuzilishi** va uning klinik ahamiyati
+\n✅ **DNK metillanishi**ning klinikada muhimligi
+\n✅ **Purin metabolizmi** va uning klinik ahamiyati
+\n✅ **Podagra kasalligi** haqida
+\n✅ **Podagra davosi**
 
-✨ Shu mavzulardagi eng so‘nggi yangiliklarni o‘zlashtirishni xohlasangiz, hoziroq **marafon kanaliga qo‘shiling**\!"""
+✨ Shu mavzulardagi eng so\'nggi yangiliklarni o\'zlashtirishni xohlasangiz, hoziroq **marafon kanaliga qo\'shiling**\!"""
         bot.send_message(user, msg_start, reply_markup=markup, parse_mode='MarkdownV2')
     except Exception as e:
         bot.send_message(message.chat.id, "⚠️ **Xatolik yuz berdi\!** Iltimos, admin xatoni tuzatishini kuting\!", parse_mode='MarkdownV2')
@@ -253,7 +253,7 @@ def query_handler(call):
                         data['referred'][ref] += 1
                         bot.send_message(
                             ref_id,
-                            f"🎁 **Do‘stingiz kanalga qo‘shildi\!**\nSiz **\+{Per_Refer} {TOKEN}** ishlab oldingiz\!",
+                            f"🎁 **Do\'stingiz kanalga qo\'shildi\!**\nSiz **\+{Per_Refer} {TOKEN}** ishlab oldingiz\!",
                             parse_mode='MarkdownV2'
                         )
                     save_users_data(data)
@@ -266,7 +266,7 @@ def query_handler(call):
                 markup = telebot.types.InlineKeyboardMarkup()
                 markup.add(telebot.types.InlineKeyboardButton(
                     text='✅ Obunani tekshirish', callback_data='check'))
-                msg_start = "🤖 **Botdan foydalanish uchun** quyidagi kanalga qo‘shiling va **Obunani tekshirish** tugmasini bosing:\n\n📢 **@medstone_usmle**"
+                msg_start = "🤖 **Botdan foydalanish uchun** quyidagi kanalga qo\'shiling va **Obunani tekshirish** tugmasini bosing:\n\n📢 **@medstone_usmle**"
                 bot.send_message(call.message.chat.id, msg_start, reply_markup=markup, parse_mode='MarkdownV2')
     except Exception as e:
         bot.send_message(call.message.chat.id, "⚠️ **Xatolik yuz berdi\!** Iltimos, admin xatoni tuzatishini kuting\!", parse_mode='MarkdownV2')
@@ -280,22 +280,22 @@ def contact(message):
         bot.send_message(ADMIN_GROUP_USERNAME, f"👤 **Foydalanuvchi:** @{username}\n📞 **Telefon raqami:** {contact}", parse_mode='MarkdownV2')
 
         inline_markup = telebot.types.InlineKeyboardMarkup()
-        inline_markup.add(telebot.types.InlineKeyboardButton(text="🎁 Sovg‘angizni oling!", callback_data='gift'))
-        gift_message = """🎉 **Siz uchun maxsus tayyorlangan sovg‘alarni kutib oling\!**  
+        inline_markup.add(telebot.types.InlineKeyboardButton(text="🎁 Sovg\'angizni oling!", callback_data='gift'))
+        gift_message = """🎉 **Siz uchun maxsus tayyorlangan sovg\'alarni kutib oling\!**
 
-1️⃣ **Kanalimizning barcha qatnashchilari ** Shoxrux Botirov tomonidan maxsus tayyorlangan **bonus video dars**ni mehmondo‘stligimiz ramzi sifatida yuklab olishlari mumkin\nBuning uchun pastdagi **"Mening sovg‘am🎁"** tugmasini bosing\.  
+1️⃣ **Kanalimizning barcha qatnashchilari ** Shoxrux Botirov tomonidan maxsus tayyorlangan **bonus video dars**ni mehmondo\'stligimiz ramzi sifatida yuklab olishlari mumkin\nBuning uchun pastdagi **"Mening sovg\'am🎁"** tugmasini bosing\.
 
-2️⃣ **10 ta do‘stingizni taklif qiling** – avval 650 ming so‘mdan sotilgan leksiyalar to‘plamidan **1 ta dolzarb mavzu**ni BEPUL qo‘lga kiriting\!  
+2️⃣ **10 ta do\'stingizni taklif qiling** – avval 650 ming so\'mdan sotilgan leksiyalar to\'plamidan **1 ta dolzarb mavzu**ni BEPUL qo\'lga kiriting\!
 
-3️⃣ **20 ta do‘stingizni taklif qiling** – **2 ta video dars**ni case tahlillari bilan birga BEPUL qo‘lga kiriting\!  
+3️⃣ **20 ta do\'stingizni taklif qiling** – **2 ta video dars**ni case tahlillari bilan birga BEPUL qo\'lga kiriting\!
 
-4️⃣ **30 ta do‘stingizni taklif qiling** – **3 ta dars**ni batafsil case tahlillari bilan BEPUL oling\!  
+4️⃣ **30 ta do\'stingizni taklif qiling** – **3 ta dars**ni batafsil case tahlillari bilan BEPUL oling\!
 
-🔥 Har safar **10 ta do‘stingiz** sizning havolangiz orqali kanalga qo‘shilsa, yangi video leksiyalarni qo‘lga kiritib boraverasiz – shu tarzda hatto **butun kursni** ham BEPUL yutib olishingiz mumkin\!  
+🔥 Har safar **10 ta do\'stingiz** sizning havolangiz orqali kanalga qo\'shilsa, yangi video leksiyalarni qo\'lga kiritib boraverasiz – shu tarzda hatto **butun kursni** ham BEPUL yutib olishingiz mumkin\!
 
-📎 **Maxsus linkingizni oling** va do‘stlaringizni jamoamizga taklif qiling\! Bu faqat sizga tegishli havola bo‘lib, u orqali kanalga qo‘shilgan har bir do‘stingiz sizga **1 ball** olib keladi\.  
+📎 **Maxsus linkingizni oling** va do\'stlaringizni jamoamizga taklif qiling\! Bu faqat sizga tegishli havola bo\'lib, u orqali kanalga qo\'shilgan har bir do\'stingiz sizga **1 ball** olib keladi\.
 
-⬇️ **"Maxsus linkim"** tugmasini bosing va linkingizni oling\!  
+⬇️ **"Maxsus linkim"** tugmasini bosing va linkingizni oling\!
 📊 Ballaringizni esa **"Mening hisobim"** tugmasi orqali kuzatib borishingiz mumkin\!"""
         bot.send_message(message.chat.id, gift_message, reply_markup=inline_markup, parse_mode='MarkdownV2')
         menu(message.chat.id)
@@ -333,10 +333,10 @@ def send_invite_link(user_id):
     save_users_data(data)
 
     ref_link = f'https://telegram.me/{bot_name}?start={user_id}'
-    msg = (f"📚 **Biokimyo bo‘yicha OCHIQ DARSLAR** \n\n" \
-           f"✨ **USMLE Step 1** asosidagi unikal kurslar asosida tayyorlangan **BEPUL marafon**da qatnashmoqchi bo‘lsangiz, quyidagi havola orqali jamoamizga qo‘shiling\! \n\n" \
-           f"⏳ **Vaqt va joylar chegaralangan** – shoshiling\! \n\n" \
-           f"👩‍⚕️ Marafon **bakalavrlar, ordinatorlar va shifokorlar** uchun mo‘ljallangan va **butunlay bepul**\! \n\n" \
+    msg = (f"📚 **Biokimyo bo\'yicha OCHIQ DARSLAR**\n\n"
+           f"✨ **USMLE Step 1** asosidagi unikal kurslar asosida tayyorlangan **BEPUL marafon**da qatnashmoqchi bo\'lsangiz, quyidagi havola orqali jamoamizga qo\'shiling\!\n\n"
+           f"⏳ **Vaqt va joylar chegaralangan** – shoshiling\!\n\n"
+           f"👩‍⚕️ Marafon **bakalavrlar, ordinatorlar va shifokorlar** uchun mo\'ljallangan va **butunlay bepul**\!\n\n"
            f"🔗 **Taklifnoma havolangiz:** {ref_link}")
     bot.send_message(user_id, msg, parse_mode='MarkdownV2')
 
@@ -368,18 +368,18 @@ def process_broadcast_type(message):
         
         broadcast_type = message.text
         if broadcast_type not in ["✍️ Matn", "📸 Rasm", "🎥 Video"]:
-            bot.reply_to(message, "⚠️ **Iltimos, to‘g‘ri tanlov qiling\!** Qayta urining:", reply_markup=telebot.types.ReplyKeyboardRemove(), parse_mode='MarkdownV2')
+            bot.reply_to(message, "⚠️ **Iltimos, to\'g\'ri tanlov qiling\!** Qayta urining:", reply_markup=telebot.types.ReplyKeyboardRemove(), parse_mode='MarkdownV2')
             handle_broadcast(message)
             return
 
         if broadcast_type == "✍️ Matn":
-            msg = bot.send_message(message.chat.id, "📝 Yuboriladigan **matnni** kiriting \(Markdown qo‘llab\-quvvatlanadi\):\nFiltrlash uchun: **/filter <ball>** \(masalan, /filter 10\)", parse_mode='MarkdownV2')
+            msg = bot.send_message(message.chat.id, "📝 Yuboriladigan **matnni** kiriting \(Markdown qo\'llab\-quvvatlanadi\):\nFiltrlash uchun: **/filter <ball>** \(masalan, /filter 10\)", parse_mode='MarkdownV2')
             bot.register_next_step_handler(msg, lambda m: process_broadcast(m, 'text'))
         elif broadcast_type == "📸 Rasm":
-            msg = bot.send_message(message.chat.id, "📸 Yuboriladigan **rasmni** yuklang va izoh qo‘shing \(ixtiyoriy\):", parse_mode='MarkdownV2')
+            msg = bot.send_message(message.chat.id, "📸 Yuboriladigan **rasmni** yuklang va izoh qo\'shing \(ixtiyoriy\):", parse_mode='MarkdownV2')
             bot.register_next_step_handler(msg, lambda m: process_broadcast(m, 'photo'))
         elif broadcast_type == "🎥 Video":
-            msg = bot.send_message(message.chat.id, "🎥 Yuboriladigan **videoni** yuklang va izoh qo‘shing \(ixtiyoriy\):", parse_mode='MarkdownV2')
+            msg = bot.send_message(message.chat.id, "🎥 Yuboriladigan **videoni** yuklang va izoh qo\'shing \(ixtiyoriy\):", parse_mode='MarkdownV2')
             bot.register_next_step_handler(msg, lambda m: process_broadcast(m, 'video'))
         
     except Exception as e:
@@ -484,7 +484,7 @@ def send_text(message):
                 bot.send_message(message.chat.id, "🚫 **Ushbu buyruq faqat bot egasiga mavjud\!**", parse_mode='MarkdownV2')
         elif message.text == "📢 Broadcast":
             if message.chat.id == OWNER_ID:
-                bot.send_message(message.chat.id, "📢 **Broadcast uchun** /broadcast buyrug‘ini ishlatishingiz mumkin\!", parse_mode='MarkdownV2')
+                bot.send_message(message.chat.id, "📢 **Broadcast uchun** /broadcast buyrug\'ini ishlatishingiz mumkin\!", parse_mode='MarkdownV2')
             else:
                 bot.send_message(message.chat.id, "🚫 **Bu buyruq faqat admin uchun\!**", parse_mode='MarkdownV2')
     except Exception as e:
