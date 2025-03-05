@@ -7,12 +7,11 @@ import os
 from dotenv import load_dotenv
 import time
 
-# Muhit o'zgaruvchilarini yuklash
 load_dotenv()
 
-# TOKEN DETAILS
 TOKEN = "Ball"
 BOT_TOKEN = os.getenv("BOT_TOKEN", "7559962637:AAH8Xyb4roZWJ061WEYT2a5TAB9Epq4uFN8")
+print(f"Starting bot with BOT_TOKEN: {BOT_TOKEN}")  # Tokenni boshida chop etish
 PAYMENT_CHANNEL = "@medstone_usmle"
 OWNER_ID = int(os.getenv("OWNER_ID", 725821571))
 CHANNELS = ["@medstone_usmle"]
@@ -24,11 +23,9 @@ app = Flask(__name__)
 
 ADMIN_GROUP_USERNAME = "@endocrineqatnashchi"
 
-# Google Sheets sozlamalari
 SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 SPREADSHEET_NAME = os.getenv("SPREADSHEET_NAME", "Marafon")
 
-# Google Sheets autentifikatsiyasi
 creds_json = os.getenv("GOOGLE_SHEETS_CREDS")
 if creds_json:
     creds_dict = json.loads(creds_json)
@@ -38,7 +35,6 @@ if creds_json:
 else:
     raise ValueError("Google Sheets credentials not found in environment variables!")
 
-# Log yozuvlari uchun ro'yxat
 log_messages = []
 
 @app.route('/')
@@ -62,7 +58,6 @@ def receive_update():
 def get_logs():
     return '<br>'.join(log_messages)
 
-# Kanal tekshiruvi
 def check(id):
     for i in CHANNELS:
         check = bot.get_chat_member(i, id)
@@ -84,7 +79,6 @@ def menu(id):
         keyboard.row('📢 Broadcast')
     bot.send_message(id, "🏠 **Asosiy menyu** ⬇️", reply_markup=keyboard, parse_mode='Markdown')
 
-# Google Sheets-dan ma'lumotlarni yuklash
 def load_users_data():
     try:
         records = sheet.get_all_records()
@@ -125,7 +119,6 @@ def load_users_data():
             "refer": {}
         }
 
-# Google Sheets-ga ma'lumotlarni saqlash
 def save_users_data(data):
     try:
         sheet.clear()
