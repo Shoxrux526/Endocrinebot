@@ -334,13 +334,11 @@ def send_invite_link(user_id):
     save_users_data(data)
 
     ref_link = f'https://telegram.me/{bot_name}?start={user_id}'
-    msg = (f"📚 **Biokimyo bo‘yicha OCHIQ DARSLAR**  
-✨ **USMLE Step 1** asosidagi unikal kurslardan tayyorlangan **BEPUL marafon**da qatnashmoqchi bo‘lsangiz, quyidagi havola orqali jamoamizga qo‘shiling!  
-
-⏳ **Vaqt va joylar chegaralangan** – shoshiling!  
-👩‍⚕️ Marafon bakalavrlar, ordinatorlar va shifokorlar uchun mo‘ljallangan va **butunlay bepul**!  
-
-🔗 **Taklifnoma havolangiz:** {ref_link}")
+    msg = (f"📚 **Biokimyo bo‘yicha OCHIQ DARSLAR** \n" \
+           f"✨ **USMLE Step 1** asosidagi unikal kurslardan tayyorlangan **BEPUL marafon**da qatnashmoqchi bo‘lsangiz, quyidagi havola orqali jamoamizga qo‘shiling! \n" \
+           f"⏳ **Vaqt va joylar chegaralangan** – shoshiling! \n" \
+           f"👩‍⚕️ Marafon bakalavrlar, ordinatorlar va shifokorlar uchun mo‘ljallangan va **butunlay bepul**! \n" \
+           f"🔗 **Taklifnoma havolangiz:** {ref_link}")
     bot.send_message(user_id, msg, parse_mode='Markdown')
 
 @bot.message_handler(commands=['broadcast'])
