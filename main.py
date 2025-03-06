@@ -155,50 +155,50 @@ def send_gift_video(user_id):
     data = load_users_data()
     balance = data['balance'].get(str(user_id), 0)
     if 0 <= balance < 10:
-        video_links = [
-            "https://t.me/marafonbotbazasi/10",
-            "https://t.me/marafonbotbazasi/11"
+        video_file_ids = [
+            "BAACAgIAAxkBAAOZZ8lfa1Q3oDRS9oqCXOiPn_p93D8AAqBmAAL7xUFKoEtKma8dLa42",  # 10
+            "BAACAgIAAxkBAAOeZ8limUU9a-517h4vtgePxMlevgQAAqVmAAL7xUFKmUPtGfCL6Xs2"   # 11
         ]
-        for link in video_links:
-            bot.send_message(user_id, f"🎥 Videoni quyidagi havolada ko‘ring: {link}")
+        for file_id in video_file_ids:
+            bot.send_video(user_id, file_id, supports_streaming=True)
         bot.send_message(user_id, '🎥 1-dars video sizga muvaffaqiyatli jo‘natildi! 🚀')
     elif 10 <= balance < 20:
-        video_links = [
-            "https://t.me/marafonbotbazasi/11",
-            "https://t.me/marafonbotbazasi/12"
+        video_file_ids = [
+            "BAACAgIAAxkBAAOeZ8limUU9a-517h4vtgePxMlevgQAAqVmAAL7xUFKmUPtGfCL6Xs2",  # 11
+            "BAACAgIAAxkBAAOlZ8ljNTuijji8JX7Jsd8uyiOM_voAAqxmAAL7xUFK-ukDepjfBKk2"   # 12
         ]
-        for link in video_links:
-            bot.send_message(user_id, f"🎥 Videoni quyidagi havolada ko‘ring: {link}")
+        for file_id in video_file_ids:
+            bot.send_video(user_id, file_id, supports_streaming=True)
         bot.send_message(user_id, '🎥 1-dars va 2-dars videolar sizga jo‘natildi! \nKo‘proq darslarni qo‘lga kiritish uchun do‘stlaringizni taklif qilishni unutmang! ✨')
     elif 20 <= balance < 30:
-        video_links = [
-            "https://t.me/marafonbotbazasi/11",
-            "https://t.me/marafonbotbazasi/12",
-            "https://t.me/marafonbotbazasi/13"
+        video_file_ids = [
+            "BAACAgIAAxkBAAOeZ8limUU9a-517h4vtgePxMlevgQAAqVmAAL7xUFKmUPtGfCL6Xs2",  # 11
+            "BAACAgIAAxkBAAOlZ8ljNTuijji8JX7Jsd8uyiOM_voAAqxmAAL7xUFK-ukDepjfBKk2",  # 12
+            "BAACAgIAAxkBAAOpZ8ljgmpTdLm6ZbdgqMH7uGc1-VYAArNmAAL7xUFKkDufrJ12Yik2"   # 13
         ]
-        for link in video_links:
-            bot.send_message(user_id, f"🎥 Videoni quyidagi havolada ko‘ring: {link}")
+        for file_id in video_file_ids:
+            bot.send_video(user_id, file_id, supports_streaming=True)
         bot.send_message(user_id, '🎥 1-dars, 2-dars va 3-dars videolar sizga jo‘natildi! Ajoyib natija! 👏')
     elif 30 <= balance < 40:
-        video_links = [
-            "https://t.me/marafonbotbazasi/11",
-            "https://t.me/marafonbotbazasi/12",
-            "https://t.me/marafonbotbazasi/13",
-            "https://t.me/marafonbotbazasi/14"
+        video_file_ids = [
+            "BAACAgIAAxkBAAOeZ8limUU9a-517h4vtgePxMlevgQAAqVmAAL7xUFKmUPtGfCL6Xs2",  # 11
+            "BAACAgIAAxkBAAOlZ8ljNTuijji8JX7Jsd8uyiOM_voAAqxmAAL7xUFK-ukDepjfBKk2",  # 12
+            "BAACAgIAAxkBAAOpZ8ljgmpTdLm6ZbdgqMH7uGc1-VYAArNmAAL7xUFKkDufrJ12Yik2",  # 13
+            "BAACAgIAAxkBAAOtZ8ljxSEgwZpbRPEXieG9FE8zWpkAArZmAAL7xUFKxz1eoVNoJwABNgQ"  # 14
         ]
-        for link in video_links:
-            bot.send_message(user_id, f"🎥 Videoni quyidagi havolada ko‘ring: {link}")
+        for file_id in video_file_ids:
+            bot.send_video(user_id, file_id, supports_streaming=True)
         bot.send_message(user_id, '🎥 1-dars, 2-dars, 3-dars va 4-dars videolar sizga jo‘natildi! \nNatijalaringizga havas qilsa arziydi! 🌟')
     elif 40 <= balance < 50:
-        video_links = [
-            "https://t.me/marafonbotbazasi/11",
-            "https://t.me/marafonbotbazasi/12",
-            "https://t.me/marafonbotbazasi/13",
-            "https://t.me/marafonbotbazasi/14",
-            "https://t.me/marafonbotbazasi/15"
+        video_file_ids = [
+            "BAACAgIAAxkBAAOeZ8limUU9a-517h4vtgePxMlevgQAAqVmAAL7xUFKmUPtGfCL6Xs2",  # 11
+            "BAACAgIAAxkBAAOlZ8ljNTuijji8JX7Jsd8uyiOM_voAAqxmAAL7xUFK-ukDepjfBKk2",  # 12
+            "BAACAgIAAxkBAAOpZ8ljgmpTdLm6ZbdgqMH7uGc1-VYAArNmAAL7xUFKkDufrJ12Yik2",  # 13
+            "BAACAgIAAxkBAAOtZ8ljxSEgwZpbRPEXieG9FE8zWpkAArZmAAL7xUFKxz1eoVNoJwABNgQ", # 14
+            "BAACAgIAAxkBAAOxZ8lj8aqZnsApeO-IpoBbKPJeb70AArhmAAL7xUFKbNVXn3sSe0U2"   # 15
         ]
-        for link in video_links:
-            bot.send_message(user_id, f"🎥 Videoni quyidagi havolada ko‘ring: {link}")
+        for file_id in video_file_ids:
+            bot.send_video(user_id, file_id, supports_streaming=True)
         bot.send_message(user_id, '🎥 1-dars, 2-dars, 3-dars, 4-dars va 5-dars videolar sizga jo‘natildi! \nShu zaylda davom etib butun kursni ham yutib olishingiz mumkin! 🎉')
     else:
         bot.send_message(user_id, '⚠️ Kechirasiz, ballaringiz yetarli emas. Do‘stlaringizni taklif qilib, ball to‘plang! 🚀')
