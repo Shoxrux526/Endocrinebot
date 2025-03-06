@@ -7,6 +7,7 @@ import os
 from dotenv import load_dotenv
 import time
 import logging
+from tenacity import retry, stop_after_attempt, wait_fixed, retry_if_exception_type
 
 # Loglash sozlamalari
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -38,7 +39,8 @@ if creds_json:
     creds_dict = json.loads(creds_json)
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, SCOPE)
     client = gspread.authorize(creds)
-    sheet = client.open(SPREADSHEET_NAME).sheet1
+    sheet = client.open(SPREADSHEET_NAME).sheet1  # Asosiy varaq
+    backup_sheet = client.open(SPREADSHEET_NAME).get_worksheet(1)  # "Backup" varaq (indeks 1)
 else:
     raise ValueError("Google Sheets credentials not found in environment variables!")
 
@@ -88,7 +90,8 @@ def menu(id):
         keyboard.row('📢 Broadcast')
     bot.send_message(id, "🏠 Asosiy menyu ⬇️", reply_markup=keyboard)
 
-# Google Sheets-dan ma'lumotlarni yuklash
+# Google Sheets-dan ma'lumotlarni yuklash (retry bilan)
+@retry(stop=stop_after_attempt(3), wait=wait_fixed(2), retry_if_exception_type(Exception))
 def load_users_data():
     try:
         records = sheet.get_all_records()
@@ -118,24 +121,41 @@ def load_users_data():
         return data
     except Exception as e:
         logging.error(f"Error loading data from Google Sheets: {e}")
-        return {
-            "referred": {},
-            "referby": {},
-            "checkin": {},
-            "DailyQuiz": {},
-            "balance": {},
-            "withd": {},
-            "id": {},
-            "total": 0,
-            "refer": {}
-        }
+        raise
 
-# Google Sheets-ga ma'lumotlarni saqlash (xavfsiz usul)
+# Backup funksiyasi (retry bilan)
+@retry(stop=stop_after_attempt(3), wait=wait_fixed(2), retry_if_exception_type(Exception))
+def backup_users_data(data):
+    try:
+        headers = ['user_id', 'referred', 'referby', 'checkin', 'DailyQuiz', 'balance', 'withd', 'id', 'refer']
+        all_data = [headers]
+        for user_id in data['referred']:
+            row = [
+                user_id,
+                data['referred'].get(user_id, 0),
+                data['referby'].get(user_id, user_id),
+                data['checkin'].get(user_id, 0),
+                data['DailyQuiz'].get(user_id, "0"),
+                data['balance'].get(user_id, 0),
+                data['withd'].get(user_id, 0),
+                data['id'].get(user_id, 0),
+                data['refer'].get(user_id, False)
+            ]
+            all_data.append(row)
+        backup_sheet.update(values=all_data, range_name='A1')
+        logging.info("Backup saved successfully")
+    except Exception as e:
+        logging.error(f"Backup error: {e}")
+        raise
+
+# Google Sheets-ga ma'lumotlarni saqlash (backup bilan, retry bilan)
+@retry(stop=stop_after_attempt(3), wait=wait_fixed(2), retry_if_exception_type(Exception))
 def save_users_data(data):
     try:
         if not data['referred']:
             logging.warning("Data is empty, skipping save to avoid data loss")
             return
+        backup_users_data(data)  # Har safar saqlashdan oldin backup
         logging.info(f"Saving data for {len(data['referred'])} users to Google Sheets")
         headers = ['user_id', 'referred', 'referby', 'checkin', 'DailyQuiz', 'balance', 'withd', 'id', 'refer']
         all_data = [headers]
@@ -152,34 +172,11 @@ def save_users_data(data):
                 data['refer'].get(user_id, False)
             ]
             all_data.append(row)
-        sheet.update('A1', all_data)  # Jadvalni tozalamay yangilash
+        sheet.update(values=all_data, range_name='A1')
         logging.info("Data saved successfully to Google Sheets")
     except Exception as e:
         logging.error(f"Error saving data to Google Sheets: {e}")
-
-# Backup mexanizmi (ixtiyoriy, agar kerak bo'lsa ishlatiladi)
-def backup_data(data):
-    try:
-        backup_sheet = client.open(SPREADSHEET_NAME).get_worksheet(1)  # Ikkinchi varaqni backup uchun ishlatamiz
-        headers = ['user_id', 'referred', 'referby', 'checkin', 'DailyQuiz', 'balance', 'withd', 'id', 'refer']
-        all_data = [headers]
-        for user_id in data['referred']:
-            row = [
-                user_id,
-                data['referred'].get(user_id, 0),
-                data['referby'].get(user_id, user_id),
-                data['checkin'].get(user_id, 0),
-                data['DailyQuiz'].get(user_id, "0"),
-                data['balance'].get(user_id, 0),
-                data['withd'].get(user_id, 0),
-                data['id'].get(user_id, 0),
-                data['refer'].get(user_id, False)
-            ]
-            all_data.append(row)
-        backup_sheet.update('A1', all_data)
-        logging.info("Backup created successfully")
-    except Exception as e:
-        logging.error(f"Backup error: {e}")
+        raise
 
 def send_videos(user_id, video_file_ids):
     for video_file_id in video_file_ids:
@@ -291,7 +288,7 @@ def account_or_ref_link_handler(call):
         user_id = call.message.chat.id
         data = load_users_data()
         user = str(user_id)
-        username = call.message.chat.username
+        username = call.message.chat.username if call.message.chat.username else call.message.chat.first_name
 
         if call.data == 'account':
             balance = data['balance'].get(user, 0)
@@ -319,7 +316,7 @@ def query_handler(call):
                 data = load_users_data()
                 user_id = call.message.chat.id
                 user = str(user_id)
-                username = call.message.chat.username
+                username = call.message.chat.username if call.message.chat.username else call.message.chat.first_name
                 bot.answer_callback_query(callback_query_id=call.id, text='🎉 Siz kanalga qo‘shildingiz! Omad tilaymiz!')
 
                 if user not in data['refer']:
@@ -360,14 +357,14 @@ def query_handler(call):
 def contact(message):
     if message.contact is not None:
         contact = message.contact.phone_number
-        username = message.from_user.username
+        username = message.from_user.username if message.from_user.username else message.from_user.first_name
         bot.send_message(ADMIN_GROUP_USERNAME, f"👤 Foydalanuvchi: @{username}\n📞 Telefon raqami: {contact}")
 
         inline_markup = telebot.types.InlineKeyboardMarkup()
         inline_markup.add(telebot.types.InlineKeyboardButton(text="🎁 Sovg‘angizni oling!", callback_data='gift'))
         gift_message = """🎉 Siz uchun maxsus tayyorlangan sovg‘alarni kutib oling!  
 
-1️⃣ Medstone kanalining barcha a‘zolari, Shoxrux Botirov tomonidan tayyorlangan bonus video dars ni mehmondo‘stiligimiz ramzi sifatida yuklab olishlari mumkin!\nBuning uchun pastdagi "Mening sovg‘am🎁" tugmasini bosing.  
+1️⃣ Medstone kanalining barcha a‘zolari, Shoxrux Botirov tomonidan tayyorlangan bonus video dars ni mehmondo‘stligimiz ramzi sifatida yuklab olishlari mumkin!\nBuning uchun pastdagi "Mening sovg‘am🎁" tugmasini bosing.  
 
 2️⃣ 10 ta do‘stingizni taklif qiling va avval 650 ming so‘mdan sotilgan leksiyalar to‘plamidan 1 ta dolzarb mavzu ni BEPUL yutib oling!  
 
@@ -527,10 +524,11 @@ def send_text(message):
             data = load_users_data()
             user_id = message.chat.id
             user = str(user_id)
+            username = message.from_user.username if message.from_user.username else message.from_user.first_name
             balance = data['balance'].get(user, 0)
             markup = telebot.types.InlineKeyboardMarkup()
             markup.add(telebot.types.InlineKeyboardButton(text=f"💰 Balans: {balance} Ball", callback_data='balance'))
-            msg = f"👤 Foydalanuvchi: @{message.from_user.username}\n💰 Balans: {balance} {TOKEN}"
+            msg = f"👤 Foydalanuvchi: @{username}\n💰 Balans: {balance} {TOKEN}"
             bot.send_message(message.chat.id, msg, reply_markup=markup)
         elif message.text == '🙌🏻 Maxsus linkim':
             send_invite_link(message.chat.id)
