@@ -109,7 +109,7 @@ def load_users_data():
             data['withd'][user_id] = row.get('withd', 0)
             data['id'][user_id] = row.get('id', 0)
             data['refer'][user_id] = row.get('refer', False)
-        data['total'] = len(data['referred'])  # Foydalanuvchilar soni
+            data['total'] = max(data['total'], row.get('id', 0))
         return data
     except Exception as e:
         print(f"Error loading data from Google Sheets: {e}")
@@ -188,7 +188,7 @@ def start(message):
 
         if user not in data['referred']:
             data['referred'][user] = 0
-            data['total'] = len(data['referred'])  # Yangi foydalanuvchi qo'shilganda total yangilanadi
+            data['total'] += 1
         if user not in data['referby']:
             data['referby'][user] = referrer if referrer else user
             if referrer and referrer in data['referred']:
@@ -203,7 +203,7 @@ def start(message):
         if user not in data['withd']:
             data['withd'][user] = 0
         if user not in data['id']:
-            data['id'][user] = len(data['referred'])  # Har bir yangi foydalanuvchi uchun ID
+            data['id'][user] = data['total'] + 1
         save_users_data(data)
         markup = telebot.types.InlineKeyboardMarkup()
         markup.add(telebot.types.InlineKeyboardButton(
