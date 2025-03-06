@@ -156,7 +156,7 @@ def send_gift_video(user_id):
     balance = data['balance'].get(str(user_id), 0)
     if 0 <= balance < 10:
         video_file_ids = [
-            "BAACAgIAAxkBAAOZZ8lfa1Q3oDRS9oqCXOiPn_p93D8AAqBmAAL7xUFKoEtKma8dLa42BA",  # 10
+            "BAACAgIAAxkBAAO5Z8mLvieNkRVRFvCAkbI3v8BXv0QAAmNzAAL7xVFK9pD5u_Q12qI2BA",  # 10
             "BAACAgIAAxkBAAOeZ8limUU9a-517h4vtgePxMlevgQAAqVmAAL7xUFKmUPtGfCL6Xs2BA"   # 11
         ]
         for file_id in video_file_ids:
