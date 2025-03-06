@@ -6,6 +6,10 @@ from oauth2client.service_account import ServiceAccountCredentials
 import os
 from dotenv import load_dotenv
 import time
+import logging
+
+# Loglash sozlamalari
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Muhit o'zgaruvchilarini yuklash
 load_dotenv()
@@ -109,10 +113,11 @@ def load_users_data():
             data['withd'][user_id] = row.get('withd', 0)
             data['id'][user_id] = row.get('id', 0)
             data['refer'][user_id] = row.get('refer', False)
-        data['total'] = len(data['referred'])  # Foydalanuvchilar soni
+        data['total'] = len(data['referred'])
+        logging.info(f"Loaded {data['total']} users from Google Sheets")
         return data
     except Exception as e:
-        print(f"Error loading data from Google Sheets: {e}")
+        logging.error(f"Error loading data from Google Sheets: {e}")
         return {
             "referred": {},
             "referby": {},
@@ -125,12 +130,15 @@ def load_users_data():
             "refer": {}
         }
 
-# Google Sheets-ga ma'lumotlarni saqlash
+# Google Sheets-ga ma'lumotlarni saqlash (xavfsiz usul)
 def save_users_data(data):
     try:
-        sheet.clear()
+        if not data['referred']:
+            logging.warning("Data is empty, skipping save to avoid data loss")
+            return
+        logging.info(f"Saving data for {len(data['referred'])} users to Google Sheets")
         headers = ['user_id', 'referred', 'referby', 'checkin', 'DailyQuiz', 'balance', 'withd', 'id', 'refer']
-        sheet.append_row(headers)
+        all_data = [headers]
         for user_id in data['referred']:
             row = [
                 user_id,
@@ -143,9 +151,35 @@ def save_users_data(data):
                 data['id'].get(user_id, 0),
                 data['refer'].get(user_id, False)
             ]
-            sheet.append_row(row)
+            all_data.append(row)
+        sheet.update('A1', all_data)  # Jadvalni tozalamay yangilash
+        logging.info("Data saved successfully to Google Sheets")
     except Exception as e:
-        print(f"Error saving data to Google Sheets: {e}")
+        logging.error(f"Error saving data to Google Sheets: {e}")
+
+# Backup mexanizmi (ixtiyoriy, agar kerak bo'lsa ishlatiladi)
+def backup_data(data):
+    try:
+        backup_sheet = client.open(SPREADSHEET_NAME).get_worksheet(1)  # Ikkinchi varaqni backup uchun ishlatamiz
+        headers = ['user_id', 'referred', 'referby', 'checkin', 'DailyQuiz', 'balance', 'withd', 'id', 'refer']
+        all_data = [headers]
+        for user_id in data['referred']:
+            row = [
+                user_id,
+                data['referred'].get(user_id, 0),
+                data['referby'].get(user_id, user_id),
+                data['checkin'].get(user_id, 0),
+                data['DailyQuiz'].get(user_id, "0"),
+                data['balance'].get(user_id, 0),
+                data['withd'].get(user_id, 0),
+                data['id'].get(user_id, 0),
+                data['refer'].get(user_id, False)
+            ]
+            all_data.append(row)
+        backup_sheet.update('A1', all_data)
+        logging.info("Backup created successfully")
+    except Exception as e:
+        logging.error(f"Backup error: {e}")
 
 def send_videos(user_id, video_file_ids):
     for video_file_id in video_file_ids:
@@ -156,46 +190,46 @@ def send_gift_video(user_id):
     balance = data['balance'].get(str(user_id), 0)
     if 0 <= balance < 10:
         video_file_ids = [
-            "BAACAgIAAxkBAAO5Z8mLvieNkRVRFvCAkbI3v8BXv0QAAmNzAAL7xVFK9pD5u_Q12qI2BA",  # 0
-            "BAACAgIAAxkBAAO9Z8mQRljwkELtdARVzegC6hcJO6IAAmtmAAIjclBKyJlwuotkIs42BA"   # 1
+            "BAACAgIAAxkBAAO5Z8mLvieNkRVRFvCAkbI3v8BXv0QAAmNzAAL7xVFK9pD5u_Q12qI2BA",
+            "BAACAgIAAxkBAAO9Z8mQRljwkELtdARVzegC6hcJO6IAAmtmAAIjclBKyJlwuotkIs42BA"
         ]
         for file_id in video_file_ids:
             bot.send_video(user_id, file_id, supports_streaming=True)
         bot.send_message(user_id, '🎥 1-dars video sizga muvaffaqiyatli jo‘natildi! 🚀')
     elif 10 <= balance < 20:
         video_file_ids = [
-            "BAACAgIAAxkBAAO9Z8mQRljwkELtdARVzegC6hcJO6IAAmtmAAIjclBKyJlwuotkIs42BA",  # 1
-            "BAACAgIAAxkBAAPBZ8mUDcATsuXPizV1bbtKf6GtrrIAAu9zAAL7xVFKB0HdkbK-cSw2BA"   # 2
+            "BAACAgIAAxkBAAO9Z8mQRljwkELtdARVzegC6hcJO6IAAmtmAAIjclBKyJlwuotkIs42BA",
+            "BAACAgIAAxkBAAPBZ8mUDcATsuXPizV1bbtKf6GtrrIAAu9zAAL7xVFKB0HdkbK-cSw2BA"
         ]
         for file_id in video_file_ids:
             bot.send_video(user_id, file_id, supports_streaming=True)
         bot.send_message(user_id, '🎥 1-dars va 2-dars videolar sizga jo‘natildi! \nKo‘proq darslarni qo‘lga kiritish uchun do‘stlaringizni taklif qilishni unutmang! ✨')
     elif 20 <= balance < 30:
         video_file_ids = [
-            "BAACAgIAAxkBAAO9Z8mQRljwkELtdARVzegC6hcJO6IAAmtmAAIjclBKyJlwuotkIs42BA",  # 1
-            "BAACAgIAAxkBAAPBZ8mUDcATsuXPizV1bbtKf6GtrrIAAu9zAAL7xVFKB0HdkbK-cSw2BA",  # 2
-            "BAACAgIAAxkBAAPFZ8mZWqrw-mBhzC9vPdZYmh1D5ngAAl90AAL7xVFKflxE6Syhoh42BA"   # 3
+            "BAACAgIAAxkBAAO9Z8mQRljwkELtdARVzegC6hcJO6IAAmtmAAIjclBKyJlwuotkIs42BA",
+            "BAACAgIAAxkBAAPBZ8mUDcATsuXPizV1bbtKf6GtrrIAAu9zAAL7xVFKB0HdkbK-cSw2BA",
+            "BAACAgIAAxkBAAPFZ8mZWqrw-mBhzC9vPdZYmh1D5ngAAl90AAL7xVFKflxE6Syhoh42BA"
         ]
         for file_id in video_file_ids:
             bot.send_video(user_id, file_id, supports_streaming=True)
         bot.send_message(user_id, '🎥 1-dars, 2-dars va 3-dars videolar sizga jo‘natildi! Ajoyib natija! 👏')
     elif 30 <= balance < 40:
         video_file_ids = [
-            "BAACAgIAAxkBAAO9Z8mQRljwkELtdARVzegC6hcJO6IAAmtmAAIjclBKyJlwuotkIs42BA",  # 1
-            "BAACAgIAAxkBAAPBZ8mUDcATsuXPizV1bbtKf6GtrrIAAu9zAAL7xVFKB0HdkbK-cSw2BA",  # 2
-            "BAACAgIAAxkBAAPFZ8mZWqrw-mBhzC9vPdZYmh1D5ngAAl90AAL7xVFKflxE6Syhoh42BA",  # 3
-            "BAACAgIAAxkBAAPJZ8mcHAj0OAoFmV2g9rQtriSJASUAApt0AAL7xVFKsF-rXTHDmw82BA"  # 4
+            "BAACAgIAAxkBAAO9Z8mQRljwkELtdARVzegC6hcJO6IAAmtmAAIjclBKyJlwuotkIs42BA",
+            "BAACAgIAAxkBAAPBZ8mUDcATsuXPizV1bbtKf6GtrrIAAu9zAAL7xVFKB0HdkbK-cSw2BA",
+            "BAACAgIAAxkBAAPFZ8mZWqrw-mBhzC9vPdZYmh1D5ngAAl90AAL7xVFKflxE6Syhoh42BA",
+            "BAACAgIAAxkBAAPJZ8mcHAj0OAoFmV2g9rQtriSJASUAApt0AAL7xVFKsF-rXTHDmw82BA"
         ]
         for file_id in video_file_ids:
             bot.send_video(user_id, file_id, supports_streaming=True)
         bot.send_message(user_id, '🎥 1-dars, 2-dars, 3-dars va 4-dars videolar sizga jo‘natildi! \nNatijalaringizga havas qilsa arziydi! 🌟')
     elif 40 <= balance < 50:
         video_file_ids = [
-            "BAACAgIAAxkBAAO9Z8mQRljwkELtdARVzegC6hcJO6IAAmtmAAIjclBKyJlwuotkIs42BA",  # 1
-            "BAACAgIAAxkBAAPBZ8mUDcATsuXPizV1bbtKf6GtrrIAAu9zAAL7xVFKB0HdkbK-cSw2BA",  # 2
-            "BAACAgIAAxkBAAPFZ8mZWqrw-mBhzC9vPdZYmh1D5ngAAl90AAL7xVFKflxE6Syhoh42BA",  # 3
-            "BAACAgIAAxkBAAPJZ8mcHAj0OAoFmV2g9rQtriSJASUAApt0AAL7xVFKsF-rXTHDmw82BA", # 4
-            "BAACAgIAAxkBAAPNZ8meRPcPH1vGtySLL12i7RrOYYUAAsp0AAL7xVFKTSgkEleeRaM2BA"   # 5
+            "BAACAgIAAxkBAAO9Z8mQRljwkELtdARVzegC6hcJO6IAAmtmAAIjclBKyJlwuotkIs42BA",
+            "BAACAgIAAxkBAAPBZ8mUDcATsuXPizV1bbtKf6GtrrIAAu9zAAL7xVFKB0HdkbK-cSw2BA",
+            "BAACAgIAAxkBAAPFZ8mZWqrw-mBhzC9vPdZYmh1D5ngAAl90AAL7xVFKflxE6Syhoh42BA",
+            "BAACAgIAAxkBAAPJZ8mcHAj0OAoFmV2g9rQtriSJASUAApt0AAL7xVFKsF-rXTHDmw82BA",
+            "BAACAgIAAxkBAAPNZ8meRPcPH1vGtySLL12i7RrOYYUAAsp0AAL7xVFKTSgkEleeRaM2BA"
         ]
         for file_id in video_file_ids:
             bot.send_video(user_id, file_id, supports_streaming=True)
@@ -214,7 +248,7 @@ def start(message):
 
         if user not in data['referred']:
             data['referred'][user] = 0
-            data['total'] = len(data['referred'])  # Yangi foydalanuvchi qo'shilganda total yangilanadi
+            data['total'] = len(data['referred'])
         if user not in data['referby']:
             data['referby'][user] = referrer if referrer else user
             if referrer and referrer in data['referred']:
@@ -229,7 +263,7 @@ def start(message):
         if user not in data['withd']:
             data['withd'][user] = 0
         if user not in data['id']:
-            data['id'][user] = len(data['referred'])  # Har bir yangi foydalanuvchi uchun ID
+            data['id'][user] = len(data['referred'])
         save_users_data(data)
         markup = telebot.types.InlineKeyboardMarkup()
         markup.add(telebot.types.InlineKeyboardButton(
@@ -251,7 +285,6 @@ def start(message):
         bot.send_message(message.chat.id, "⚠️ Bu buyruqda xatolik yuz berdi, iltimos, admin xatoni tuzatishini kuting!")
         bot.send_message(OWNER_ID, f"⚠️ Botingizda xatolik: {str(e)}")
 
-# BIRINCHI: Maxsus callback handler ('account', 'ref_link', 'gift' uchun)
 @bot.callback_query_handler(func=lambda call: call.data in ['account', 'ref_link', 'gift'])
 def account_or_ref_link_handler(call):
     try:
@@ -277,7 +310,6 @@ def account_or_ref_link_handler(call):
         bot.send_message(call.message.chat.id, "⚠️ Bu buyruqda xatolik yuz berdi, iltimos, admin xatoni tuzatishini kuting!")
         bot.send_message(OWNER_ID, f"⚠️ Botingizda xatolik: {str(e)}")
 
-# IKINCHI: Umumiy callback handler (barcha callback'larni ushlaydi)
 @bot.callback_query_handler(func=lambda call: True)
 def query_handler(call):
     try:
@@ -460,7 +492,7 @@ def process_broadcast(message, broadcast_type):
                 fail_count += 1
                 if "Forbidden" in str(e):
                     blocked_users.append(user_id)
-                print(f"Xato {user_id} uchun: {str(e)}")
+                logging.error(f"Error sending to {user_id}: {str(e)}")
 
         if blocked_users:
             for user_id in blocked_users:
