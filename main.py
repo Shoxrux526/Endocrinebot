@@ -155,23 +155,44 @@ def send_gift_video(user_id):
     data = load_users_data()
     balance = data['balance'].get(str(user_id), 0)
     if 0 <= balance < 10:
-        video_file_ids = ["BAACAgIAAxkBAAOZZ8lfa1Q3oDRS9oqCXOiPn_p93D8AAqBmAAL7xUFKoEtKma8dLa42BA", "BAACAgIAAxkBAAOeZ8limUU9a-517h4vtgePxMlevgQAAqVmAAL7xUFKmUPtGfCL6Xs2BA"]
+        video_file_ids = [
+            "BAACAgIAAxkBAAOZZ8lfa1Q3oDRS9oqCXOiPn_p93D8AAqBmAAL7xUFKoEtKma8dLa42",
+            "BAACAgIAAxkBAAOeZ8limUU9a-517h4vtgePxMlevgQAAqVmAAL7xUFKmUPtGfCL6Xs2"
+        ]
         send_videos(user_id, video_file_ids)
         bot.send_message(user_id, '🎥 1-dars video sizga muvaffaqiyatli jo‘natildi! 🚀')
     elif 10 <= balance < 20:
-        video_file_ids = ["BAACAgIAAxkBAAOeZ8limUU9a-517h4vtgePxMlevgQAAqVmAAL7xUFKmUPtGfCL6Xs2BA", "BAACAgIAAxkBAAOlZ8ljNTuijji8JX7Jsd8uyiOM_voAAqxmAAL7xUFK-ukDepjfBKk2BA"]
+        video_file_ids = [
+            "BAACAgIAAxkBAAOeZ8limUU9a-517h4vtgePxMlevgQAAqVmAAL7xUFKmUPtGfCL6Xs2",
+            "BAACAgIAAxkBAAOlZ8ljNTuijji8JX7Jsd8uyiOM_voAAqxmAAL7xUFK-ukDepjfBKk2"
+        ]
         send_videos(user_id, video_file_ids)
         bot.send_message(user_id, '🎥 1-dars va 2-dars videolar sizga jo‘natildi! \nKo‘proq darslarni qo‘lga kiritish uchun do‘stlaringizni taklif qilishni unutmang! ✨')
     elif 20 <= balance < 30:
-        video_file_ids = ["BAACAgIAAxkBAAOeZ8limUU9a-517h4vtgePxMlevgQAAqVmAAL7xUFKmUPtGfCL6Xs2BA", "BAACAgIAAxkBAAOlZ8ljNTuijji8JX7Jsd8uyiOM_voAAqxmAAL7xUFK-ukDepjfBKk2BA", "BAACAgIAAxkBAAOpZ8ljgmpTdLm6ZbdgqMH7uGc1-VYAArNmAAL7xUFKkDufrJ12Yik2BA"]
+        video_file_ids = [
+            "BAACAgIAAxkBAAOeZ8limUU9a-517h4vtgePxMlevgQAAqVmAAL7xUFKmUPtGfCL6Xs2",
+            "BAACAgIAAxkBAAOlZ8ljNTuijji8JX7Jsd8uyiOM_voAAqxmAAL7xUFK-ukDepjfBKk2",
+            "BAACAgIAAxkBAAOpZ8ljgmpTdLm6ZbdgqMH7uGc1-VYAArNmAAL7xUFKkDufrJ12Yik2"
+        ]
         send_videos(user_id, video_file_ids)
         bot.send_message(user_id, '🎥 1-dars, 2-dars va 3-dars videolar sizga jo‘natildi! Ajoyib natija! 👏')
     elif 30 <= balance < 40:
-        video_file_ids = ["BAACAgIAAxkBAAOeZ8limUU9a-517h4vtgePxMlevgQAAqVmAAL7xUFKmUPtGfCL6Xs2BA", "BAACAgIAAxkBAAOlZ8ljNTuijji8JX7Jsd8uyiOM_voAAqxmAAL7xUFK-ukDepjfBKk2BA", "BAACAgIAAxkBAAOpZ8ljgmpTdLm6ZbdgqMH7uGc1-VYAArNmAAL7xUFKkDufrJ12Yik2BA", "BAACAgIAAxkBAAOtZ8ljxSEgwZpbRPEXieG9FE8zWpkAArZmAAL7xUFKxz1eoVNoJwABNgQ"]
+        video_file_ids = [
+            "BAACAgIAAxkBAAOeZ8limUU9a-517h4vtgePxMlevgQAAqVmAAL7xUFKmUPtGfCL6Xs2",
+            "BAACAgIAAxkBAAOlZ8ljNTuijji8JX7Jsd8uyiOM_voAAqxmAAL7xUFK-ukDepjfBKk2",
+            "BAACAgIAAxkBAAOpZ8ljgmpTdLm6ZbdgqMH7uGc1-VYAArNmAAL7xUFKkDufrJ12Yik2",
+            "BAACAgIAAxkBAAOtZ8ljxSEgwZpbRPEXieG9FE8zWpkAArZmAAL7xUFKxz1eoVNoJwABNgQ"
+        ]
         send_videos(user_id, video_file_ids)
         bot.send_message(user_id, '🎥 1-dars, 2-dars, 3-dars va 4-dars videolar sizga jo‘natildi! \nNatijalaringizga havas qilsa arziydi! 🌟')
     elif 40 <= balance < 50:
-        video_file_ids = ["BAACAgIAAxkBAAOeZ8limUU9a-517h4vtgePxMlevgQAAqVmAAL7xUFKmUPtGfCL6Xs2BA", "BAACAgIAAxkBAAOlZ8ljNTuijji8JX7Jsd8uyiOM_voAAqxmAAL7xUFK-ukDepjfBKk2BA", "BAACAgIAAxkBAAOpZ8ljgmpTdLm6ZbdgqMH7uGc1-VYAArNmAAL7xUFKkDufrJ12Yik2BA", "BAACAgIAAxkBAAOtZ8ljxSEgwZpbRPEXieG9FE8zWpkAArZmAAL7xUFKxz1eoVNoJwABNgQ", " BAACAgIAAxkBAAOxZ8lj8aqZnsApeO-IpoBbKPJeb70AArhmAAL7xUFKbNVXn3sSe0U2BA"]
+        video_file_ids = [
+            "BAACAgIAAxkBAAOeZ8limUU9a-517h4vtgePxMlevgQAAqVmAAL7xUFKmUPtGfCL6Xs2",
+            "BAACAgIAAxkBAAOlZ8ljNTuijji8JX7Jsd8uyiOM_voAAqxmAAL7xUFK-ukDepjfBKk2",
+            "BAACAgIAAxkBAAOpZ8ljgmpTdLm6ZbdgqMH7uGc1-VYAArNmAAL7xUFKkDufrJ12Yik2",
+            "BAACAgIAAxkBAAOtZ8ljxSEgwZpbRPEXieG9FE8zWpkAArZmAAL7xUFKxz1eoVNoJwABNgQ",
+            "BAACAgIAAxkBAAOxZ8lj8aqZnsApeO-IpoBbKPJeb70AArhmAAL7xUFKbNVXn3sSe0U2"
+        ]
         send_videos(user_id, video_file_ids)
         bot.send_message(user_id, '🎥 1-dars, 2-dars, 3-dars, 4-dars va 5-dars videolar sizga jo‘natildi! \nShu zaylda davom etib butun kursni ham yutib olishingiz mumkin! 🎉')
     else:
