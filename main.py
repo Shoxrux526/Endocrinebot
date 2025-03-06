@@ -91,7 +91,7 @@ def menu(id):
     bot.send_message(id, "🏠 Asosiy menyu ⬇️", reply_markup=keyboard)
 
 # Google Sheets-dan ma'lumotlarni yuklash (retry bilan)
-@retry(stop=stop_after_attempt(3), wait=wait_fixed(2), retry_if_exception_type(Exception))
+@retry(stop=stop_after_attempt(3), wait=wait_fixed(2), retry_if_exception_type=Exception)
 def load_users_data():
     try:
         records = sheet.get_all_records()
@@ -124,7 +124,7 @@ def load_users_data():
         raise
 
 # Backup funksiyasi (retry bilan)
-@retry(stop=stop_after_attempt(3), wait=wait_fixed(2), retry_if_exception_type(Exception))
+@retry(stop=stop_after_attempt(3), wait=wait_fixed(2), retry_if_exception_type=Exception)
 def backup_users_data(data):
     try:
         headers = ['user_id', 'referred', 'referby', 'checkin', 'DailyQuiz', 'balance', 'withd', 'id', 'refer']
@@ -149,7 +149,7 @@ def backup_users_data(data):
         raise
 
 # Google Sheets-ga ma'lumotlarni saqlash (backup bilan, retry bilan)
-@retry(stop=stop_after_attempt(3), wait=wait_fixed(2), retry_if_exception_type(Exception))
+@retry(stop=stop_after_attempt(3), wait=wait_fixed(2), retry_if_exception_type=Exception)
 def save_users_data(data):
     try:
         if not data['referred']:
