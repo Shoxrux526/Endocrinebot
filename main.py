@@ -156,46 +156,46 @@ def send_gift_video(user_id):
     balance = data['balance'].get(str(user_id), 0)
     if 0 <= balance < 10:
         video_file_ids = [
-            "BAACAgIAAxkBAAO5Z8mLvieNkRVRFvCAkbI3v8BXv0QAAmNzAAL7xVFK9pD5u_Q12qI2BA",  # 10
-            "BAACAgIAAxkBAAOeZ8limUU9a-517h4vtgePxMlevgQAAqVmAAL7xUFKmUPtGfCL6Xs2BA"   # 11
+            "BAACAgIAAxkBAAO5Z8mLvieNkRVRFvCAkbI3v8BXv0QAAmNzAAL7xVFK9pD5u_Q12qI2BA",  # 0
+            "BAACAgIAAxkBAAO9Z8mQRljwkELtdARVzegC6hcJO6IAAmtmAAIjclBKyJlwuotkIs42BA"   # 1
         ]
         for file_id in video_file_ids:
             bot.send_video(user_id, file_id, supports_streaming=True)
         bot.send_message(user_id, '🎥 1-dars video sizga muvaffaqiyatli jo‘natildi! 🚀')
     elif 10 <= balance < 20:
         video_file_ids = [
-            "BAACAgIAAxkBAAOeZ8limUU9a-517h4vtgePxMlevgQAAqVmAAL7xUFKmUPtGfCL6Xs2BA",  # 11
-            "BAACAgIAAxkBAAOlZ8ljNTuijji8JX7Jsd8uyiOM_voAAqxmAAL7xUFK-ukDepjfBKk2BA"   # 12
+            "BAACAgIAAxkBAAO9Z8mQRljwkELtdARVzegC6hcJO6IAAmtmAAIjclBKyJlwuotkIs42BA",  # 1
+            "BAACAgIAAxkBAAPBZ8mUDcATsuXPizV1bbtKf6GtrrIAAu9zAAL7xVFKB0HdkbK-cSw2BA"   # 2
         ]
         for file_id in video_file_ids:
             bot.send_video(user_id, file_id, supports_streaming=True)
         bot.send_message(user_id, '🎥 1-dars va 2-dars videolar sizga jo‘natildi! \nKo‘proq darslarni qo‘lga kiritish uchun do‘stlaringizni taklif qilishni unutmang! ✨')
     elif 20 <= balance < 30:
         video_file_ids = [
-            "BAACAgIAAxkBAAOeZ8limUU9a-517h4vtgePxMlevgQAAqVmAAL7xUFKmUPtGfCL6Xs2BA",  # 11
-            "BAACAgIAAxkBAAOlZ8ljNTuijji8JX7Jsd8uyiOM_voAAqxmAAL7xUFK-ukDepjfBKk2BA",  # 12
-            "BAACAgIAAxkBAAOpZ8ljgmpTdLm6ZbdgqMH7uGc1-VYAArNmAAL7xUFKkDufrJ12Yik2BA"   # 13
+            "BAACAgIAAxkBAAO9Z8mQRljwkELtdARVzegC6hcJO6IAAmtmAAIjclBKyJlwuotkIs42BA",  # 1
+            "BAACAgIAAxkBAAPBZ8mUDcATsuXPizV1bbtKf6GtrrIAAu9zAAL7xVFKB0HdkbK-cSw2BA",  # 2
+            "BAACAgIAAxkBAAPFZ8mZWqrw-mBhzC9vPdZYmh1D5ngAAl90AAL7xVFKflxE6Syhoh42BA"   # 3
         ]
         for file_id in video_file_ids:
             bot.send_video(user_id, file_id, supports_streaming=True)
         bot.send_message(user_id, '🎥 1-dars, 2-dars va 3-dars videolar sizga jo‘natildi! Ajoyib natija! 👏')
     elif 30 <= balance < 40:
         video_file_ids = [
-            "BAACAgIAAxkBAAOeZ8limUU9a-517h4vtgePxMlevgQAAqVmAAL7xUFKmUPtGfCL6Xs2BA",  # 11
-            "BAACAgIAAxkBAAOlZ8ljNTuijji8JX7Jsd8uyiOM_voAAqxmAAL7xUFK-ukDepjfBKk2BA",  # 12
-            "BAACAgIAAxkBAAOpZ8ljgmpTdLm6ZbdgqMH7uGc1-VYAArNmAAL7xUFKkDufrJ12Yik2BA",  # 13
-            "BAACAgIAAxkBAAOtZ8ljxSEgwZpbRPEXieG9FE8zWpkAArZmAAL7xUFKxz1eoVNoJwABNgQ"  # 14
+            "BAACAgIAAxkBAAO9Z8mQRljwkELtdARVzegC6hcJO6IAAmtmAAIjclBKyJlwuotkIs42BA",  # 1
+            "BAACAgIAAxkBAAPBZ8mUDcATsuXPizV1bbtKf6GtrrIAAu9zAAL7xVFKB0HdkbK-cSw2BA",  # 2
+            "BAACAgIAAxkBAAPFZ8mZWqrw-mBhzC9vPdZYmh1D5ngAAl90AAL7xVFKflxE6Syhoh42BA",  # 3
+            "BAACAgIAAxkBAAPJZ8mcHAj0OAoFmV2g9rQtriSJASUAApt0AAL7xVFKsF-rXTHDmw82BA"  # 4
         ]
         for file_id in video_file_ids:
             bot.send_video(user_id, file_id, supports_streaming=True)
         bot.send_message(user_id, '🎥 1-dars, 2-dars, 3-dars va 4-dars videolar sizga jo‘natildi! \nNatijalaringizga havas qilsa arziydi! 🌟')
     elif 40 <= balance < 50:
         video_file_ids = [
-            "BAACAgIAAxkBAAOeZ8limUU9a-517h4vtgePxMlevgQAAqVmAAL7xUFKmUPtGfCL6Xs2BA",  # 11
-            "BAACAgIAAxkBAAOlZ8ljNTuijji8JX7Jsd8uyiOM_voAAqxmAAL7xUFK-ukDepjfBKk2BA",  # 12
-            "BAACAgIAAxkBAAOpZ8ljgmpTdLm6ZbdgqMH7uGc1-VYAArNmAAL7xUFKkDufrJ12Yik2BA",  # 13
-            "BAACAgIAAxkBAAOtZ8ljxSEgwZpbRPEXieG9FE8zWpkAArZmAAL7xUFKxz1eoVNoJwABNgQ", # 14
-            "BAACAgIAAxkBAAOxZ8lj8aqZnsApeO-IpoBbKPJeb70AArhmAAL7xUFKbNVXn3sSe0U2BA"   # 15
+            "BAACAgIAAxkBAAO9Z8mQRljwkELtdARVzegC6hcJO6IAAmtmAAIjclBKyJlwuotkIs42BA",  # 1
+            "BAACAgIAAxkBAAPBZ8mUDcATsuXPizV1bbtKf6GtrrIAAu9zAAL7xVFKB0HdkbK-cSw2BA",  # 2
+            "BAACAgIAAxkBAAPFZ8mZWqrw-mBhzC9vPdZYmh1D5ngAAl90AAL7xVFKflxE6Syhoh42BA",  # 3
+            "BAACAgIAAxkBAAPJZ8mcHAj0OAoFmV2g9rQtriSJASUAApt0AAL7xVFKsF-rXTHDmw82BA", # 4
+            "BAACAgIAAxkBAAPNZ8meRPcPH1vGtySLL12i7RrOYYUAAsp0AAL7xVFKTSgkEleeRaM2BA"   # 5
         ]
         for file_id in video_file_ids:
             bot.send_video(user_id, file_id, supports_streaming=True)
