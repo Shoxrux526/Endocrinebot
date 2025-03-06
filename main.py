@@ -10,7 +10,7 @@ import time
 # Muhit o'zgaruvchilarini yuklash
 load_dotenv()
 
-# TOKEN DETAILS
+# TOKEN DETALLARI
 TOKEN = "Ball"
 BOT_TOKEN = os.getenv("BOT_TOKEN", "7559962637:AAH8Xyb4roZWJ061WEYT2a5TAB9Epq4uFN8")
 PAYMENT_CHANNEL = "@medstone_usmle"
@@ -155,23 +155,23 @@ def send_gift_video(user_id):
     data = load_users_data()
     balance = data['balance'].get(str(user_id), 0)
     if 0 <= balance < 10:
-        video_file_ids = ["BAACAgIAAxkBAAOZZ8lfa1Q3oDRS9oqCXOiPn_p93D8AAqBmAAL7xUFKoEtKma8dLa42BA", "BAACAgIAAxkBAAOeZ8limUU9a-517h4vtgePxMlevgQAAqVmAAL7xUFKmUPtGfCL6Xs2BA"]
+        video_file_ids = ["https://t.me/marafonbotbazasi/10", "https://t.me/marafonbotbazasi/11"]
         send_videos(user_id, video_file_ids)
         bot.send_message(user_id, '🎥 1-dars video sizga muvaffaqiyatli jo‘natildi! 🚀')
     elif 10 <= balance < 20:
-        video_file_ids = ["BAACAgIAAxkBAAOeZ8limUU9a-517h4vtgePxMlevgQAAqVmAAL7xUFKmUPtGfCL6Xs2BA", "BAACAgIAAxkBAAOeZ8limUU9a-517h4vtgePxMlevgQAAqVmAAL7xUFKmUPtGfCL6Xs2BA"]
+        video_file_ids = ["https://t.me/marafonbotbazasi/11", "https://t.me/marafonbotbazasi/12"]
         send_videos(user_id, video_file_ids)
         bot.send_message(user_id, '🎥 1-dars va 2-dars videolar sizga jo‘natildi! \nKo‘proq darslarni qo‘lga kiritish uchun do‘stlaringizni taklif qilishni unutmang! ✨')
     elif 20 <= balance < 30:
-        video_file_ids = ["BAACAgIAAxkBAAOeZ8limUU9a-517h4vtgePxMlevgQAAqVmAAL7xUFKmUPtGfCL6Xs2BA", "BAACAgIAAxkBAAOeZ8limUU9a-517h4vtgePxMlevgQAAqVmAAL7xUFKmUPtGfCL6Xs2BA", "BAACAgIAAxkBAAOpZ8ljgmpTdLm6ZbdgqMH7uGc1-VYAArNmAAL7xUFKkDufrJ12Yik2BA"]
+        video_file_ids = ["https://t.me/marafonbotbazasi/11", "https://t.me/marafonbotbazasi/12", "https://t.me/marafonbotbazasi/13"]
         send_videos(user_id, video_file_ids)
         bot.send_message(user_id, '🎥 1-dars, 2-dars va 3-dars videolar sizga jo‘natildi! Ajoyib natija! 👏')
     elif 30 <= balance < 40:
-        video_file_ids = ["BAACAgIAAxkBAAOeZ8limUU9a-517h4vtgePxMlevgQAAqVmAAL7xUFKmUPtGfCL6Xs2BA", "BAACAgIAAxkBAAOeZ8limUU9a-517h4vtgePxMlevgQAAqVmAAL7xUFKmUPtGfCL6Xs2BA", "BAACAgIAAxkBAAOpZ8ljgmpTdLm6ZbdgqMH7uGc1-VYAArNmAAL7xUFKkDufrJ12Yik2BA", "BAACAgIAAxkBAAOtZ8ljxSEgwZpbRPEXieG9FE8zWpkAArZmAAL7xUFKxz1eoVNoJwABNgQ"]
+        video_file_ids = ["https://t.me/marafonbotbazasi/11", "https://t.me/marafonbotbazasi/12", "https://t.me/marafonbotbazasi/13", "https://t.me/marafonbotbazasi/14"]
         send_videos(user_id, video_file_ids)
         bot.send_message(user_id, '🎥 1-dars, 2-dars, 3-dars va 4-dars videolar sizga jo‘natildi! \nNatijalaringizga havas qilsa arziydi! 🌟')
     elif 40 <= balance < 50:
-        video_file_ids = ["BAACAgIAAxkBAAOeZ8limUU9a-517h4vtgePxMlevgQAAqVmAAL7xUFKmUPtGfCL6Xs2BA", "BAACAgIAAxkBAAOeZ8limUU9a-517h4vtgePxMlevgQAAqVmAAL7xUFKmUPtGfCL6Xs2BA", "BAACAgIAAxkBAAOpZ8ljgmpTdLm6ZbdgqMH7uGc1-VYAArNmAAL7xUFKkDufrJ12Yik2BA", "BAACAgIAAxkBAAOtZ8ljxSEgwZpbRPEXieG9FE8zWpkAArZmAAL7xUFKxz1eoVNoJwABNgQ", " BAACAgIAAxkBAAOxZ8lj8aqZnsApeO-IpoBbKPJeb70AArhmAAL7xUFKbNVXn3sSe0U2BA"]
+        video_file_ids = ["https://t.me/marafonbotbazasi/11", "https://t.me/marafonbotbazasi/12", "https://t.me/marafonbotbazasi/13", "https://t.me/marafonbotbazasi/14", " https://t.me/marafonbotbazasi/15"]
         send_videos(user_id, video_file_ids)
         bot.send_message(user_id, '🎥 1-dars, 2-dars, 3-dars, 4-dars va 5-dars videolar sizga jo‘natildi! \nShu zaylda davom etib butun kursni ham yutib olishingiz mumkin! 🎉')
     else:
@@ -225,6 +225,33 @@ def start(message):
         bot.send_message(message.chat.id, "⚠️ Bu buyruqda xatolik yuz berdi, iltimos, admin xatoni tuzatishini kuting!")
         bot.send_message(OWNER_ID, f"⚠️ Botingizda xatolik: {str(e)}")
 
+# BIRINCHI: Maxsus callback handler ('account', 'ref_link', 'gift' uchun)
+@bot.callback_query_handler(func=lambda call: call.data in ['account', 'ref_link', 'gift'])
+def account_or_ref_link_handler(call):
+    try:
+        user_id = call.message.chat.id
+        data = load_users_data()
+        user = str(user_id)
+        username = call.message.chat.username
+
+        if call.data == 'account':
+            balance = data['balance'].get(user, 0)
+            markup = telebot.types.InlineKeyboardMarkup()
+            markup.add(telebot.types.InlineKeyboardButton(text=f"💰 Balans: {balance} Ball", callback_data='balance'))
+            msg = f"👤 Foydalanuvchi: @{username}\n💰 Balans: {balance} {TOKEN}"
+            bot.send_message(call.message.chat.id, msg, reply_markup=markup)
+
+        elif call.data == 'ref_link':
+            send_invite_link(call.message.chat.id)
+
+        elif call.data == 'gift':
+            send_gift_video(user_id)
+
+    except Exception as e:
+        bot.send_message(call.message.chat.id, "⚠️ Bu buyruqda xatolik yuz berdi, iltimos, admin xatoni tuzatishini kuting!")
+        bot.send_message(OWNER_ID, f"⚠️ Botingizda xatolik: {str(e)}")
+
+# IKINCHI: Umumiy callback handler (barcha callback'larni ushlaydi)
 @bot.callback_query_handler(func=lambda call: True)
 def query_handler(call):
     try:
@@ -299,31 +326,6 @@ def contact(message):
 📊 Ballaringizni esa "Mening hisobim" tugmasi orqali kuzatib borishingiz mumkin!"""
         bot.send_message(message.chat.id, gift_message, reply_markup=inline_markup)
         menu(message.chat.id)
-
-@bot.callback_query_handler(func=lambda call: call.data in ['account', 'ref_link', 'gift'])
-def account_or_ref_link_handler(call):
-    try:
-        user_id = call.message.chat.id
-        data = load_users_data()
-        user = str(user_id)
-        username = call.message.chat.username
-
-        if call.data == 'account':
-            balance = data['balance'].get(user, 0)
-            markup = telebot.types.InlineKeyboardMarkup()
-            markup.add(telebot.types.InlineKeyboardButton(text=f"💰 Balans: {balance} Ball", callback_data='balance'))
-            msg = f"👤 Foydalanuvchi: @{username}\n💰 Balans: {balance} {TOKEN}"
-            bot.send_message(call.message.chat.id, msg, reply_markup=markup)
-
-        elif call.data == 'ref_link':
-            send_invite_link(call.message.chat.id)
-
-        elif call.data == 'gift':
-            send_gift_video(user_id)
-
-    except Exception as e:
-        bot.send_message(call.message.chat.id, "⚠️ Bu buyruqda xatolik yuz berdi, iltimos, admin xatoni tuzatishini kuting!")
-        bot.send_message(OWNER_ID, f"⚠️ Botingizda xatolik: {str(e)}")
 
 def send_invite_link(user_id):
     data = load_users_data()
