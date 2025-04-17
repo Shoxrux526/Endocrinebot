@@ -219,7 +219,7 @@ def send_gift_video(user_id):
         for file_id in video_file_ids:
             bot.send_video(user_id, file_id, supports_streaming=True)
         bot.send_message(user_id, '🎥 1-dars, 2-dars, 3-dars va 4-dars videolar sizga jo‘natildi! \nNatijalaringizga havas qilsa arziydi! 🌟')
-    elif 20 <= balance < 25:
+    elif 20 <= balance < 525:
         video_file_ids = [
            "BAACAgIAAxkBAAIBU2gAAbN4YfLHh1-kDWPeCOt5MeYqPgACBnEAAjw6CUjGxW6x5av7fzYE",
             "BAACAgIAAxkBAAIBWmgAAbZAbia-c_7wYSISy_joamHjbQACTXEAAjw6CUhkurcWLc1GoDYE",
@@ -269,7 +269,7 @@ def start(message):
             text='✅ Obunani tekshirish', callback_data='check'))
         msg_start = """🎉 Tabriklaymiz! Siz marafon qatnashchisi bo‘lishga juda yaqin qoldingiz!  
 
-📚 Biokimyo bo‘yicha 7 kunlik BEPUL marafon davomida quyidagi mavzularni o‘rganamiz:  
+📚 Immunologiya bo‘yicha 7 kunlik BEPUL marafon davomida quyidagi mavzularni o‘rganamiz:  
 \n\n✅ Qon hosil bo‘lishi va uning klinik ahamiyati  
 \n✅ Suyak iligi ko‘chirib o‘tkazish  
 \n✅ Suyak ko‘migi tuzilishi va uning klinik ahamiyati  
@@ -392,11 +392,11 @@ def send_invite_link(user_id):
     save_users_data(data)
 
     ref_link = f'https://telegram.me/{bot_name}?start={user_id}'
-    msg = (f"📚 Biokimyo bo‘yicha OCHIQ DARSLAR \n\n" \
+    msg = (f"📚 Immunologiya bo‘yicha OCHIQ DARSLAR \n\n" \
            f"✨ USMLE Step 1 asosidagi unikal kurslar asosida tayyorlangan BEPUL marafon da qatnashmoqchi bo‘lsangiz, quyidagi havola orqali jamoamizga qo‘shiling! \n\n" \
            f"⏳ Vaqt va joylar chegaralangan – shoshiling! \n\n" \
-           f"👩‍⚕️ Marafon bakalavrlar, ordinatorlar va shifokorlar uchun mo‘ljallangan va butunlay bepul! \n\n" \
-           f"🔗 Taklifnoma havolangiz: {ref_link}")
+           f"👩‍⚕️ Marafon bakalavr, ordinator va shifokorlar uchun mo‘ljallangan va butunlay bepul! \n\n" \
+           f"🔗 Taklif havolangiz: {ref_link}")
     bot.send_message(user_id, msg)
 
 @bot.message_handler(commands=['broadcast'])
