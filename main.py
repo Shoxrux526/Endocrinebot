@@ -185,48 +185,48 @@ def send_videos(user_id, video_file_ids):
 def send_gift_video(user_id):
     data = load_users_data()
     balance = data['balance'].get(str(user_id), 0)
-    if 0 <= balance < 10:
+    if 0 <= balance < 5:
         video_file_ids = [
-            "BAACAgIAAxkBAAO5Z8mLvieNkRVRFvCAkbI3v8BXv0QAAmNzAAL7xVFK9pD5u_Q12qI2BA",
-            "BAACAgIAAxkBAAO9Z8mQRljwkELtdARVzegC6hcJO6IAAmtmAAIjclBKyJlwuotkIs42BA"
+            "BAACAgIAAxkBAAIBU2gAAbN4YfLHh1-kDWPeCOt5MeYqPgACBnEAAjw6CUjGxW6x5av7fzYE"
         ]
         for file_id in video_file_ids:
             bot.send_video(user_id, file_id, supports_streaming=True)
-        bot.send_message(user_id, '🎥 1-dars video sizga muvaffaqiyatli jo‘natildi! 🚀')
-    elif 10 <= balance < 20:
+        bot.send_message(user_id, '🎥 1-dars videosi sizga muvaffaqiyatli jo‘natildi! 🚀')
+    elif 5 <= balance < 10:
         video_file_ids = [
-            "BAACAgIAAxkBAAO9Z8mQRljwkELtdARVzegC6hcJO6IAAmtmAAIjclBKyJlwuotkIs42BA",
-            "BAACAgIAAxkBAAPBZ8mUDcATsuXPizV1bbtKf6GtrrIAAu9zAAL7xVFKB0HdkbK-cSw2BA"
+            "BAACAgIAAxkBAAIBU2gAAbN4YfLHh1-kDWPeCOt5MeYqPgACBnEAAjw6CUjGxW6x5av7fzYE",
+            "BAACAgIAAxkBAAIBWmgAAbZAbia-c_7wYSISy_joamHjbQACTXEAAjw6CUhkurcWLc1GoDYE"
         ]
         for file_id in video_file_ids:
             bot.send_video(user_id, file_id, supports_streaming=True)
         bot.send_message(user_id, '🎥 1-dars va 2-dars videolar sizga jo‘natildi! \nKo‘proq darslarni qo‘lga kiritish uchun do‘stlaringizni taklif qilishni unutmang! ✨')
-    elif 20 <= balance < 30:
+    elif 10 <= balance < 15:
         video_file_ids = [
-            "BAACAgIAAxkBAAO9Z8mQRljwkELtdARVzegC6hcJO6IAAmtmAAIjclBKyJlwuotkIs42BA",
-            "BAACAgIAAxkBAAPBZ8mUDcATsuXPizV1bbtKf6GtrrIAAu9zAAL7xVFKB0HdkbK-cSw2BA",
-            "BAACAgIAAxkBAAPFZ8mZWqrw-mBhzC9vPdZYmh1D5ngAAl90AAL7xVFKflxE6Syhoh42BA"
+            "BAACAgIAAxkBAAIBU2gAAbN4YfLHh1-kDWPeCOt5MeYqPgACBnEAAjw6CUjGxW6x5av7fzYE",
+            "BAACAgIAAxkBAAIBWmgAAbZAbia-c_7wYSISy_joamHjbQACTXEAAjw6CUhkurcWLc1GoDYE",
+            "BAACAgIAAxkBAAIBXmgAAbcSA3vCd1cfx0n-KWz31uByEQACW3EAAjw6CUipZbePUW38cjYE"
         ]
         for file_id in video_file_ids:
             bot.send_video(user_id, file_id, supports_streaming=True)
         bot.send_message(user_id, '🎥 1-dars, 2-dars va 3-dars videolar sizga jo‘natildi! Ajoyib natija! 👏')
-    elif 30 <= balance < 40:
+    elif 15 <= balance < 20:
         video_file_ids = [
-            "BAACAgIAAxkBAAO9Z8mQRljwkELtdARVzegC6hcJO6IAAmtmAAIjclBKyJlwuotkIs42BA",
-            "BAACAgIAAxkBAAPBZ8mUDcATsuXPizV1bbtKf6GtrrIAAu9zAAL7xVFKB0HdkbK-cSw2BA",
-            "BAACAgIAAxkBAAPFZ8mZWqrw-mBhzC9vPdZYmh1D5ngAAl90AAL7xVFKflxE6Syhoh42BA",
-            "BAACAgIAAxkBAAPJZ8mcHAj0OAoFmV2g9rQtriSJASUAApt0AAL7xVFKsF-rXTHDmw82BA"
+            "BAACAgIAAxkBAAIBU2gAAbN4YfLHh1-kDWPeCOt5MeYqPgACBnEAAjw6CUjGxW6x5av7fzYE",
+            "BAACAgIAAxkBAAIBWmgAAbZAbia-c_7wYSISy_joamHjbQACTXEAAjw6CUhkurcWLc1GoDYE",
+            "BAACAgIAAxkBAAIBXmgAAbcSA3vCd1cfx0n-KWz31uByEQACW3EAAjw6CUipZbePUW38cjYE",
+            "BAACAgIAAxkBAAIBYmgAAbjFAYQQSiKjVuLv-URDUNdVMAACeHEAAjw6CUjCeqi600zGNjYE"
         ]
         for file_id in video_file_ids:
             bot.send_video(user_id, file_id, supports_streaming=True)
         bot.send_message(user_id, '🎥 1-dars, 2-dars, 3-dars va 4-dars videolar sizga jo‘natildi! \nNatijalaringizga havas qilsa arziydi! 🌟')
-    elif 40 <= balance < 50:
+    elif 20 <= balance < 25:
         video_file_ids = [
-            "BAACAgIAAxkBAAO9Z8mQRljwkELtdARVzegC6hcJO6IAAmtmAAIjclBKyJlwuotkIs42BA",
-            "BAACAgIAAxkBAAPBZ8mUDcATsuXPizV1bbtKf6GtrrIAAu9zAAL7xVFKB0HdkbK-cSw2BA",
-            "BAACAgIAAxkBAAPFZ8mZWqrw-mBhzC9vPdZYmh1D5ngAAl90AAL7xVFKflxE6Syhoh42BA",
-            "BAACAgIAAxkBAAPJZ8mcHAj0OAoFmV2g9rQtriSJASUAApt0AAL7xVFKsF-rXTHDmw82BA",
-            "BAACAgIAAxkBAAPNZ8meRPcPH1vGtySLL12i7RrOYYUAAsp0AAL7xVFKTSgkEleeRaM2BA"
+           "BAACAgIAAxkBAAIBU2gAAbN4YfLHh1-kDWPeCOt5MeYqPgACBnEAAjw6CUjGxW6x5av7fzYE",
+            "BAACAgIAAxkBAAIBWmgAAbZAbia-c_7wYSISy_joamHjbQACTXEAAjw6CUhkurcWLc1GoDYE",
+            "BAACAgIAAxkBAAIBXmgAAbcSA3vCd1cfx0n-KWz31uByEQACW3EAAjw6CUipZbePUW38cjYE",
+            "BAACAgIAAxkBAAIBYmgAAbjFAYQQSiKjVuLv-URDUNdVMAACeHEAAjw6CUjCeqi600zGNjYE",
+            "BAACAgIAAxkBAAIBZmgAAbpCNCRe4YoEy_xY69Nzar0NCAACjHEAAjw6CUht5iOV4UxOFDYE",
+            "BAACAgIAAxkBAAIBamgAAbsS08QgvLZ1w7dgrflI_xtMEQACk3EAAjw6CUgKGvSfuapW4TYE"
         ]
         for file_id in video_file_ids:
             bot.send_video(user_id, file_id, supports_streaming=True)
@@ -270,11 +270,11 @@ def start(message):
         msg_start = """🎉 Tabriklaymiz! Siz marafon qatnashchisi bo‘lishga juda yaqin qoldingiz!  
 
 📚 Biokimyo bo‘yicha 7 kunlik BEPUL marafon davomida quyidagi mavzularni o‘rganamiz:  
-\n\n✅ DNK tuzilishi va uning klinik ahamiyati  
-\n✅ DNK metillanishi ning klinikada muhimligi  
-\n✅ Purin metabolizmi va uning klinik ahamiyati  
-\n✅ Podagra kasalligi haqida  
-\n✅ Podagra davosi  
+\n\n✅ Qon hosil bo‘lishi va uning klinik ahamiyati  
+\n✅ Suyak iligi ko‘chirib o‘tkazish  
+\n✅ Suyak ko‘migi tuzilishi va uning klinik ahamiyati  
+\n✅ Qon hosil bo'lish bilan bog‘liq kasalliklar  
+\n✅ Anemiya turlari  
 
 ✨ Shu mavzulardagi eng so‘nggi yangiliklarni o‘zlashtirishni xohlasangiz, hoziroq marafon bo‘lib o‘tadigan kanalga qo‘shiling!"""
         bot.send_message(user, msg_start, reply_markup=markup)
@@ -366,11 +366,11 @@ def contact(message):
 
 1️⃣ Medstone kanalining barcha a‘zolari, Shoxrux Botirov tomonidan tayyorlangan bonus video dars ni mehmondo‘stligimiz ramzi sifatida yuklab olishlari mumkin!\nBuning uchun pastdagi "Mening sovg‘am🎁" tugmasini bosing.  
 
-2️⃣ 10 ta do‘stingizni taklif qiling va avval 650 ming so‘mdan sotilgan leksiyalar to‘plamidan 1 ta dolzarb mavzu ni BEPUL yutib oling!  
+2️⃣ 5 ta do‘stingizni taklif qiling va avval 650 ming so‘mdan sotilgan leksiyalar to‘plamidan 1 ta dolzarb mavzu ni BEPUL yutib oling!  
 
-3️⃣ 20 ta do‘stingizni taklif qiling – 2 ta video dars ni case tahlillari bilan birga BEPUL qo‘lga kiriting!  
+3️⃣ 10 ta do‘stingizni taklif qiling – 2 ta video dars ni case tahlillari bilan birga BEPUL qo‘lga kiriting!  
 
-4️⃣ 30 ta do‘stingizni taklif qiling – 3 ta dars ni batafsil case tahlillari bilan BEPUL yutib oling!  
+4️⃣ 15 ta do‘stingizni taklif qiling – 3 ta dars ni batafsil case tahlillari bilan BEPUL yutib oling!  
 
 🔥 Har safar 10 ta do‘stingiz sizning havolangiz orqali kanalga qo‘shilsa, yangi video leksiyalarni qo‘lga kiritaverasiz – hatto butun kursni ham BEPUL olishingiz mumkin!  
 
