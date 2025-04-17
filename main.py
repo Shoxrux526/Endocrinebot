@@ -372,7 +372,7 @@ def contact(message):
 
 4️⃣ 15 ta do‘stingizni taklif qiling – 3 ta dars ni batafsil case tahlillari bilan BEPUL yutib oling!  
 
-🔥 Har safar 10 ta do‘stingiz sizning havolangiz orqali kanalga qo‘shilsa, yangi video leksiyalarni qo‘lga kiritaverasiz – hatto butun kursni ham BEPUL olishingiz mumkin!  
+🔥 Har safar 5 ta do‘stingiz sizning havolangiz orqali kanalga qo‘shilsa, yangi video leksiyalarni qo‘lga kiritaverasiz – hatto butun kursni ham BEPUL olishingiz mumkin!  
 
 📎 Maxsus linkingizni oling va do‘stlaringizni jamoamizga taklif qiling! Bu faqat sizga tegishli havola bo‘lib, har bir do‘stingiz sizga 1 ball olib keladi.  
 
