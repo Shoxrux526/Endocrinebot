@@ -6,6 +6,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 import os
 from tenacity import retry, stop_after_attempt, wait_fixed, retry_if_exception_type
 import logging
+import time
 
 # Loglash sozlamalari
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -95,12 +96,18 @@ def menu(id):
     keyboard.row('🆔 Mening hisobim')
     keyboard.row('🙌🏻 Maxsus linkim')
     keyboard.row('🎁 Mening sovg\'am')
-    for subject_key, subject_name in SUBJECTS.items():
-        keyboard.row(f"📚 {subject_name}")
+    keyboard.row('📚 Fanlar ro‘yxati')
     if id == OWNER_ID:
         keyboard.row('📊 Statistika')
         keyboard.row('📢 Broadcast')
     bot.send_message(id, "🏠 Asosiy menyu ⬇️", reply_markup=keyboard)
+
+def subjects_menu(id):
+    keyboard = telebot.types.InlineKeyboardMarkup()
+    for subject_key, subject_name in SUBJECTS.items():
+        keyboard.add(telebot.types.InlineKeyboardButton(text=f"🎓 {subject_name}", callback_data=f'subject_{subject_key}'))
+    keyboard.add(telebot.types.InlineKeyboardButton(text="⬅️ Ortga qaytish", callback_data='back_to_menu'))
+    bot.send_message(id, "📚 Fanlar ro‘yxati:", reply_markup=keyboard)
 
 # Google Sheets-dan foydalanuvchilar ma'lumotlarini yuklash (retry bilan)
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(2), retry=retry_if_exception_type(Exception))
@@ -247,7 +254,7 @@ def send_gift_video(user_id, subject=None):
             bot.send_video(user_id, catalog[key], supports_streaming=True)
             sent_videos.append(video_index)
         else:
-            bot.send_message(user_id, f"⚠️ {subject or 'Umumiy'} {video_index}-dars video topilmadi. Admin bilan bog‘laning!")
+            bot.send_message(user_id, f"⚠️ {SUBJECTS.get(subject, 'Umumiy')} {video_index}-dars video topilmadi. Admin bilan bog‘laning!")
             return
 
     if sent_videos:
@@ -298,43 +305,14 @@ def start(message):
         bot.send_message(message.chat.id, "⚠️ Bu buyruqda xatolik yuz berdi, iltimos, admin xatoni tuzatishini kuting!")
         bot.send_message(OWNER_ID, f"⚠️ Botingizda xatolik: {str(e)}")
 
-@bot.callback_query_handler(func=lambda call: call.data in ['account', 'ref_link', 'gift'])
-def account_or_ref_link_handler(call):
-    try:
-        user_id = call.message.chat.id
-        data = load_users_data()
-        user = str(user_id)
-        username = call.message.chat.username if call.message.chat.username else call.message.chat.first_name
-
-        if call.data == 'account':
-            balance = data['balance'].get(user, 0)
-            markup = telebot.types.InlineKeyboardMarkup()
-            markup.add(telebot.types.InlineKeyboardButton(text=f"💰 Balans: {balance} Ball", callback_data='balance'))
-            msg = f"👤 Foydalanuvchi: @{username}\n💰 Balans: {balance} {TOKEN}"
-            bot.send_message(call.message.chat.id, msg, reply_markup=markup)
-
-        elif call.data == 'ref_link':
-            send_invite_link(call.message.chat.id)
-
-        elif call.data == 'gift':
-            # Fan tanlash menyusi
-            markup = telebot.types.InlineKeyboardMarkup()
-            for subject_key, subject_name in SUBJECTS.items():
-                markup.add(telebot.types.InlineKeyboardButton(text=f"🎁 {subject_name}", callback_data=f'gift_{subject_key}'))
-            bot.send_message(call.message.chat.id, "📚 Qaysi fanning sovg‘asini olishni xohlaysiz?", reply_markup=markup)
-
-    except Exception as e:
-        bot.send_message(call.message.chat.id, "⚠️ Bu buyruqda xatolik yuz berdi, iltimos, admin xatoni tuzatishini kuting!")
-        bot.send_message(OWNER_ID, f"⚠️ Botingizda xatolik: {str(e)}")
-
 @bot.callback_query_handler(func=lambda call: True)
 def query_handler(call):
     try:
-        ch = check(call.message.chat.id)
+        user_id = call.message.chat.id
         if call.data == 'check':
+            ch = check(user_id)
             if ch:
                 data = load_users_data()
-                user_id = call.message.chat.id
                 user = str(user_id)
                 username = call.message.chat.username if call.message.chat.username else call.message.chat.first_name
                 bot.answer_callback_query(callback_query_id=call.id, text='🎉 Siz kanalga qo‘shildingiz! Omad tilaymiz!')
@@ -361,24 +339,27 @@ def query_handler(call):
 
                 markup = telebot.types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
                 markup.add(telebot.types.KeyboardButton(text='📞 Raqamni ulashish', request_contact=True))
-                bot.send_message(call.message.chat.id, f"👋 Salom, @{username}! \nSizga bonuslarimizni bera olishimiz uchun telefon raqamingizni tasdiqlay olasizmi? \n\n⬇️ Buning uchun pastdagi tugmani bossangiz kifoya!", reply_markup=markup)
+                bot.send_message(user_id, f"👋 Salom, @{username}! \nSizga bonuslarimizni bera olishimiz uchun telefon raqamingizni tasdiqlay olasizmi? \n\n⬇️ Buning uchun pastdagi tugmani bossangiz kifoya!", reply_markup=markup)
             else:
                 bot.answer_callback_query(callback_query_id=call.id, text='⚠️ Siz hali kanalga qo‘shilmadingiz!')
                 markup = telebot.types.InlineKeyboardMarkup()
                 markup.add(telebot.types.InlineKeyboardButton(
                     text='✅ Obunani tekshirish', callback_data='check'))
                 msg_start = "🤖 Ushbu botdan foydalanish uchun quyidagi kanalga qo‘shiling va Obunani tekshirish tugmasini bosing: \n\n📢 @medstone_usmle"
-                bot.send_message(call.message.chat.id, msg_start, reply_markup=markup)
+                bot.send_message(user_id, msg_start, reply_markup=markup)
 
-        elif call.data.startswith('gift_'):
-            subject = call.data.replace('gift_', '')
+        elif call.data.startswith('subject_'):
+            subject = call.data.replace('subject_', '')
             if subject in SUBJECTS:
-                send_gift_video(call.message.chat.id, subject)
+                send_gift_video(user_id, subject)
             else:
-                bot.send_message(call.message.chat.id, "⚠️ Noto‘g‘ri fan tanlandi!")
+                bot.send_message(user_id, "⚠️ Noto‘g‘ri fan tanlandi!")
+
+        elif call.data == 'back_to_menu':
+            menu(user_id)
 
     except Exception as e:
-        bot.send_message(call.message.chat.id, "⚠️ Bu buyruqda xatolik yuz berdi, iltimos, admin xatoni tuzatishini kuting!")
+        bot.send_message(user_id, "⚠️ Bu buyruqda xatolik yuz berdi, iltimos, admin xatoni tuzatishini kuting!")
         bot.send_message(OWNER_ID, f"⚠️ Botingizda xatolik: {str(e)}")
 
 @bot.message_handler(content_types=['contact'])
@@ -512,7 +493,7 @@ def process_broadcast(message, broadcast_type):
                     caption = message.caption or ""
                     bot.send_video(int(user_id), message.video.file_id, caption=caption)
                 success_count += 1
-                time.sleep(0.05)
+                time.sleep(0.05)  # API cheklovlarini oldini olish uchun kutilish
             except Exception as e:
                 fail_count += 1
                 if "Forbidden" in str(e):
@@ -557,37 +538,27 @@ def send_text(message):
             markup = telebot.types.InlineKeyboardMarkup()
             markup.add(telebot.types.InlineKeyboardButton(text=f"💰 Balans: {balance} Ball", callback_data='balance'))
             msg = f"👤 Foydalanuvchi: @{username}\n💰 Balans: {balance} {TOKEN}"
-            bot.send_message(message.chat.id, msg, reply_markup=markup)
+            bot.send_message(user_id, msg, reply_markup=markup)
         elif message.text == '🙌🏻 Maxsus linkim':
-            send_invite_link(message.chat.id)
+            send_invite_link(user_id)
         elif message.text == '🎁 Mening sovg\'am':
-            # Fan tanlash menyusi
-            markup = telebot.types.InlineKeyboardMarkup()
-            for subject_key, subject_name in SUBJECTS.items():
-                markup.add(telebot.types.InlineKeyboardButton(text=f"🎁 {subject_name}", callback_data=f'gift_{subject_key}'))
-            bot.send_message(message.chat.id, "📚 Qaysi fanning sovg‘asini olishni xohlaysiz?", reply_markup=markup)
-        elif message.text.startswith('📚 '):
-            subject_name = message.text.replace('📚 ', '')
-            subject_key = next((k for k, v in SUBJECTS.items() if v == subject_name), None)
-            if subject_key:
-                send_gift_video(user_id, subject_key)
-            else:
-                bot.send_message(user_id, "⚠️ Noto‘g‘ri fan tanlandi!")
+            subjects_menu(user_id)
+        elif message.text == '📚 Fanlar ro‘yxati':
+            subjects_menu(user_id)
         elif message.text == "📊 Statistika":
-            if message.chat.id == OWNER_ID:
-                user_id = message.chat.id
+            if user_id == OWNER_ID:
                 data = load_users_data()
                 msg = f"📈 Jami foydalanuvchilar: {data['total']} ta"
                 bot.send_message(user_id, msg)
             else:
-                bot.send_message(message.chat.id, "🚫 Ushbu buyruq faqat bot egasiga mavjud!")
+                bot.send_message(user_id, "🚫 Ushbu buyruq faqat bot egasiga mavjud!")
         elif message.text == "📢 Broadcast":
-            if message.chat.id == OWNER_ID:
-                bot.send_message(message.chat.id, "📢 Broadcast uchun /broadcast buyrug‘ini ishlatishingiz mumkin!")
+            if user_id == OWNER_ID:
+                bot.send_message(user_id, "📢 Broadcast uchun /broadcast buyrug‘ini ishlatishingiz mumkin!")
             else:
-                bot.send_message(message.chat.id, "🚫 Bu buyruq faqat admin uchun!")
+                bot.send_message(user_id, "🚫 Bu buyruq faqat admin uchun!")
     except Exception as e:
-        bot.send_message(message.chat.id, "⚠️ Bu buyruqda xatolik yuz berdi, iltimos, admin xatoni tuzatishini kuting!")
+        bot.send_message(user_id, "⚠️ Bu buyruqda xatolik yuz berdi, iltimos, admin xatoni tuzatishini kuting!")
         bot.send_message(OWNER_ID, f"⚠️ Botingizda xatolik: {str(e)}")
 
 @bot.channel_post_handler(content_types=['video'])
@@ -598,27 +569,24 @@ def handle_channel_video_post(message):
             return
 
         file_id = message.video.file_id
-        caption = message.caption.strip() if message.caption else None
+        caption = message.caption.strip().lower() if message.caption else None
 
         if not caption:
             bot.send_message(OWNER_ID, f"⚠️ Kanalga video yuklandi, lekin caption yo‘q!")
             return
 
-        # Caption'da fan tegi yoki raqam tekshiruvi
+        # Fan nomini va indeksni caption'dan ajratish
         subject_key = None
         index = None
-        if '#' in caption:
-            for key in SUBJECTS.keys():
-                if f'#{key}' in caption.lower():
-                    subject_key = key
-                    index = caption.split('#')[0].strip() if caption.split('#')[0].strip().isdigit() else '1'
-                    break
-        elif caption.isdigit():
-            subject_key = 'general'  # Agar faqat raqam bo‘lsa, umumiy kategoriyaga qo‘shish
-            index = caption
-
+        for key in SUBJECTS.keys():
+            if f'#{key}' in caption:
+                subject_key = key
+                # Indeksni ajratish (raqamdan oldin #key bo'lsa)
+                index_part = caption.replace(f'#{key}', '').strip()
+                index = index_part if index_part.isdigit() else '1'
+                break
         if not subject_key or not index:
-            bot.send_message(OWNER_ID, f"⚠️ Captionda fan tegi (#fan_nomi) yoki raqam noto‘g‘ri: {caption}")
+            bot.send_message(OWNER_ID, f"⚠️ Captionda to‘g‘ri fan tegi (#fan_nomi raqam) kiritilmagan: {caption}")
             return
 
         catalog = load_video_catalog()
