@@ -19,6 +19,20 @@ TOKEN = "Ball"
 Daily_bonus = 1
 Per_Refer = 1
 
+# Fanlar ro‘yxati (qo'shimcha fanlarni shu yerda qo'shing)
+SUBJECTS = {
+    "immunology": "Immunologiya",
+    "cardiology": "Kardiologiya",
+    "anatomy": "Anatomiya",
+    "pathology": "Patologiya",
+    "pharmacology": "Farmakologiya",
+    "surgery": "Jarrohlik",
+    "pediatrics": "Pediatriya",
+    "neurology": "Nevrologiya",
+    "endocrinology": "Endokrinologiya",
+    "oncology": "Onkologiya"
+}
+
 bot = telebot.TeleBot(BOT_TOKEN)
 app = Flask(__name__)
 
@@ -35,8 +49,8 @@ if creds_json:
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, SCOPE)
     client = gspread.authorize(creds)
     sheet = client.open(SPREADSHEET_NAME).sheet1  # Foydalanuvchilar uchun asosiy varaq
-    backup_sheet = client.open(SPREADSHEET_NAME).get_worksheet(1)  # Foydalanuvchilar uchun backup varaq (indeks 1)
-    video_catalog_sheet = client.open(SPREADSHEET_NAME).get_worksheet(2)  # Video katalogi uchun alohida varaq (indeks 2)
+    backup_sheet = client.open(SPREADSHEET_NAME).get_worksheet(1)  # Foydalanuvchilar uchun backup varaq
+    video_catalog_sheet = client.open(SPREADSHEET_NAME).get_worksheet(2)  # Video katalogi uchun varaq
 else:
     raise ValueError("Google Sheets credentials not found in environment variables!")
 
@@ -81,6 +95,8 @@ def menu(id):
     keyboard.row('🆔 Mening hisobim')
     keyboard.row('🙌🏻 Maxsus linkim')
     keyboard.row('🎁 Mening sovg\'am')
+    for subject_key, subject_name in SUBJECTS.items():
+        keyboard.row(f"📚 {subject_name}")
     if id == OWNER_ID:
         keyboard.row('📊 Statistika')
         keyboard.row('📢 Broadcast')
@@ -180,16 +196,18 @@ def send_videos(user_id, video_file_ids):
 
 # Video katalogini Google Sheets-dan yuklash (retry bilan)
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(2), retry=retry_if_exception_type(Exception))
-def load_video_catalog():
+def load_video_catalog(subject=None):
     try:
         records = video_catalog_sheet.get_all_records()
         catalog = {}
         for row in records:
+            subject_key = row.get('subject', '').lower()
             index = str(row.get('index', ''))
             file_id = row.get('file_id', '')
-            if index and file_id:
-                catalog[index] = file_id
-        logging.info(f"Loaded video catalog with {len(catalog)} entries from Google Sheets")
+            if subject_key and index and file_id:
+                if subject is None or subject.lower() == subject_key:
+                    catalog[f"{subject_key}_{index}"] = file_id
+        logging.info(f"Loaded video catalog for {subject or 'all'} with {len(catalog)} entries from Google Sheets")
         return catalog
     except Exception as e:
         logging.error(f"❌ Error loading video catalog from Google Sheets: {e}")
@@ -199,10 +217,11 @@ def load_video_catalog():
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(2), retry=retry_if_exception_type(Exception))
 def save_video_catalog(data):
     try:
-        headers = ['index', 'file_id']
+        headers = ['subject', 'index', 'file_id']
         all_data = [headers]
-        for index, file_id in data.items():
-            all_data.append([index, file_id])
+        for key, file_id in data.items():
+            subject_key, index = key.split('_', 1)
+            all_data.append([subject_key, index, file_id])
         video_catalog_sheet.update(values=all_data, range_name='A1')
         logging.info(f"Video catalog saved successfully with {len(data)} entries to Google Sheets")
         return True
@@ -210,9 +229,9 @@ def save_video_catalog(data):
         logging.error(f"❌ Error saving video catalog to Google Sheets: {e}")
         return False
 
-def send_gift_video(user_id):
+def send_gift_video(user_id, subject=None):
     data = load_users_data()
-    catalog = load_video_catalog()
+    catalog = load_video_catalog(subject)
     balance = data['balance'].get(str(user_id), 0)
     video_count = balance // 5  # Har 5 ball uchun 1 video
     sent_videos = []
@@ -223,11 +242,12 @@ def send_gift_video(user_id):
 
     for i in range(1, video_count + 1):
         video_index = str(i)
-        if video_index in catalog:
-            bot.send_video(user_id, catalog[video_index], supports_streaming=True)
+        key = f"{subject.lower()}_{video_index}" if subject else video_index
+        if key in catalog:
+            bot.send_video(user_id, catalog[key], supports_streaming=True)
             sent_videos.append(video_index)
         else:
-            bot.send_message(user_id, f"⚠️ {video_index}-dars video topilmadi. Admin bilan bog‘laning!")
+            bot.send_message(user_id, f"⚠️ {subject or 'Umumiy'} {video_index}-dars video topilmadi. Admin bilan bog‘laning!")
             return
 
     if sent_videos:
@@ -270,14 +290,9 @@ def start(message):
             text='✅ Obunani tekshirish', callback_data='check'))
         msg_start = """🎉 Tabriklaymiz! Siz marafon qatnashchisi bo‘lishga juda yaqin qoldingiz!  
 
-📚 Immunologiya bo‘yicha 7 kunlik BEPUL marafon davomida quyidagi mavzularni o‘rganamiz:  
-\n\n✅ Qon hosil bo‘lishi va uning klinik ahamiyati  
-\n✅ Suyak iligi ko‘chirib o‘tkazish  
-\n✅ Suyak ko‘migi tuzilishi va uning klinik ahamiyati  
-\n✅ Qon hosil bo'lish bilan bog‘liq kasalliklar  
-\n✅ Anemiya turlari  
+📚 Turli fanlar bo‘yicha 7 kunlik BEPUL marafon davomida o‘rganishingiz mumkin. Fanlarni tanlash uchun menyudan foydalaning!  
 
-✨ Shu mavzulardagi eng so‘nggi yangiliklarni o‘zlashtirishni xohlasangiz, hoziroq marafon bo‘lib o‘tadigan kanalga qo‘shiling!"""
+✨ Eng so‘nggi yangiliklarni o‘zlashtirish uchun kanalga qo‘shiling!"""
         bot.send_message(user, msg_start, reply_markup=markup)
     except Exception as e:
         bot.send_message(message.chat.id, "⚠️ Bu buyruqda xatolik yuz berdi, iltimos, admin xatoni tuzatishini kuting!")
@@ -302,7 +317,11 @@ def account_or_ref_link_handler(call):
             send_invite_link(call.message.chat.id)
 
         elif call.data == 'gift':
-            send_gift_video(user_id)
+            # Fan tanlash menyusi
+            markup = telebot.types.InlineKeyboardMarkup()
+            for subject_key, subject_name in SUBJECTS.items():
+                markup.add(telebot.types.InlineKeyboardButton(text=f"🎁 {subject_name}", callback_data=f'gift_{subject_key}'))
+            bot.send_message(call.message.chat.id, "📚 Qaysi fanning sovg‘asini olishni xohlaysiz?", reply_markup=markup)
 
     except Exception as e:
         bot.send_message(call.message.chat.id, "⚠️ Bu buyruqda xatolik yuz berdi, iltimos, admin xatoni tuzatishini kuting!")
@@ -350,6 +369,14 @@ def query_handler(call):
                     text='✅ Obunani tekshirish', callback_data='check'))
                 msg_start = "🤖 Ushbu botdan foydalanish uchun quyidagi kanalga qo‘shiling va Obunani tekshirish tugmasini bosing: \n\n📢 @medstone_usmle"
                 bot.send_message(call.message.chat.id, msg_start, reply_markup=markup)
+
+        elif call.data.startswith('gift_'):
+            subject = call.data.replace('gift_', '')
+            if subject in SUBJECTS:
+                send_gift_video(call.message.chat.id, subject)
+            else:
+                bot.send_message(call.message.chat.id, "⚠️ Noto‘g‘ri fan tanlandi!")
+
     except Exception as e:
         bot.send_message(call.message.chat.id, "⚠️ Bu buyruqda xatolik yuz berdi, iltimos, admin xatoni tuzatishini kuting!")
         bot.send_message(OWNER_ID, f"⚠️ Botingizda xatolik: {str(e)}")
@@ -393,7 +420,7 @@ def send_invite_link(user_id):
     save_users_data(data)
 
     ref_link = f'https://telegram.me/{bot_name}?start={user_id}'
-    msg = (f"📚 Immunologiya bo‘yicha OCHIQ DARSLAR \n\n" \
+    msg = (f"📚 Turli fanlar bo‘yicha OCHIQ DARSLAR \n\n" \
            f"✨ USMLE Step 1 asosidagi unikal kurslar asosida tayyorlangan BEPUL marafon da qatnashmoqchi bo‘lsangiz, quyidagi havola orqali jamoamizga qo‘shiling! \n\n" \
            f"⏳ Vaqt va joylar chegaralangan – shoshiling! \n\n" \
            f"👩‍⚕️ Marafon bakalavr, ordinator va shifokorlar uchun mo‘ljallangan va butunlay bepul! \n\n" \
@@ -521,9 +548,9 @@ def process_broadcast(message, broadcast_type):
 @bot.message_handler(content_types=['text'])
 def send_text(message):
     try:
+        user_id = message.chat.id
         if message.text == '🆔 Mening hisobim':
             data = load_users_data()
-            user_id = message.chat.id
             user = str(user_id)
             username = message.from_user.username if message.from_user.username else message.from_user.first_name
             balance = data['balance'].get(user, 0)
@@ -534,7 +561,18 @@ def send_text(message):
         elif message.text == '🙌🏻 Maxsus linkim':
             send_invite_link(message.chat.id)
         elif message.text == '🎁 Mening sovg\'am':
-            send_gift_video(message.chat.id)
+            # Fan tanlash menyusi
+            markup = telebot.types.InlineKeyboardMarkup()
+            for subject_key, subject_name in SUBJECTS.items():
+                markup.add(telebot.types.InlineKeyboardButton(text=f"🎁 {subject_name}", callback_data=f'gift_{subject_key}'))
+            bot.send_message(message.chat.id, "📚 Qaysi fanning sovg‘asini olishni xohlaysiz?", reply_markup=markup)
+        elif message.text.startswith('📚 '):
+            subject_name = message.text.replace('📚 ', '')
+            subject_key = next((k for k, v in SUBJECTS.items() if v == subject_name), None)
+            if subject_key:
+                send_gift_video(user_id, subject_key)
+            else:
+                bot.send_message(user_id, "⚠️ Noto‘g‘ri fan tanlandi!")
         elif message.text == "📊 Statistika":
             if message.chat.id == OWNER_ID:
                 user_id = message.chat.id
@@ -555,29 +593,45 @@ def send_text(message):
 @bot.channel_post_handler(content_types=['video'])
 def handle_channel_video_post(message):
     try:
-        # Faqat sizning kanalga tegishli postlar ishlovchi bo‘lishi kerak
+        # Faqat ruxsat etilgan kanallardan kelgan videolar ishlovchi bo‘lishi kerak
         if message.chat.username != "marafonbotbazasi":
             return
 
         file_id = message.video.file_id
         caption = message.caption.strip() if message.caption else None
 
-        if not caption or not caption.isdigit():
-            bot.send_message(OWNER_ID, f"⚠️ Kanalga video yuklandi, lekin caption noto‘g‘ri edi: {caption}")
+        if not caption:
+            bot.send_message(OWNER_ID, f"⚠️ Kanalga video yuklandi, lekin caption yo‘q!")
             return
 
-        index = caption
+        # Caption'da fan tegi yoki raqam tekshiruvi
+        subject_key = None
+        index = None
+        if '#' in caption:
+            for key in SUBJECTS.keys():
+                if f'#{key}' in caption.lower():
+                    subject_key = key
+                    index = caption.split('#')[0].strip() if caption.split('#')[0].strip().isdigit() else '1'
+                    break
+        elif caption.isdigit():
+            subject_key = 'general'  # Agar faqat raqam bo‘lsa, umumiy kategoriyaga qo‘shish
+            index = caption
+
+        if not subject_key or not index:
+            bot.send_message(OWNER_ID, f"⚠️ Captionda fan tegi (#fan_nomi) yoki raqam noto‘g‘ri: {caption}")
+            return
+
         catalog = load_video_catalog()
-
-        if index in catalog:
-            bot.send_message(OWNER_ID, f"⚠️ {index}-raqamli video allaqachon mavjud! O‘zgartirmadi.")
+        key = f"{subject_key}_{index}"
+        if key in catalog:
+            bot.send_message(OWNER_ID, f"⚠️ {subject_key} {index}-raqamli video allaqachon mavjud! O‘zgartirmadi.")
             return
 
-        catalog[index] = file_id
+        catalog[key] = file_id
         saved = save_video_catalog(catalog)
 
         if saved:
-            bot.send_message(OWNER_ID, f"✅ {index}-dars video Google Sheets'ga yozildi.")
+            bot.send_message(OWNER_ID, f"✅ {subject_key} {index}-dars video Google Sheets'ga yozildi.")
         else:
             bot.send_message(OWNER_ID, "❌ Xatolik: Google Sheets'ga yozib bo‘lmadi.")
 
