@@ -34,8 +34,9 @@ if creds_json:
     creds_dict = json.loads(creds_json)
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, SCOPE)
     client = gspread.authorize(creds)
-    sheet = client.open(SPREADSHEET_NAME).sheet1  # Asosiy varaq
-    backup_sheet = client.open(SPREADSHEET_NAME).get_worksheet(1)  # "Backup" varaq (indeks 1)
+    sheet = client.open(SPREADSHEET_NAME).sheet1  # Foydalanuvchilar uchun asosiy varaq
+    backup_sheet = client.open(SPREADSHEET_NAME).get_worksheet(1)  # Foydalanuvchilar uchun backup varaq (indeks 1)
+    video_catalog_sheet = client.open(SPREADSHEET_NAME).get_worksheet(2)  # Video katalogi uchun alohida varaq (indeks 2)
 else:
     raise ValueError("Google Sheets credentials not found in environment variables!")
 
@@ -85,7 +86,7 @@ def menu(id):
         keyboard.row('📢 Broadcast')
     bot.send_message(id, "🏠 Asosiy menyu ⬇️", reply_markup=keyboard)
 
-# Google Sheets-dan ma'lumotlarni yuklash (retry bilan)
+# Google Sheets-dan foydalanuvchilar ma'lumotlarini yuklash (retry bilan)
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(2), retry=retry_if_exception_type(Exception))
 def load_users_data():
     try:
@@ -118,7 +119,7 @@ def load_users_data():
         logging.error(f"Error loading data from Google Sheets: {e}")
         raise
 
-# Backup funksiyasi (retry bilan)
+# Foydalanuvchilar uchun backup funksiyasi (retry bilan)
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(2), retry=retry_if_exception_type(Exception))
 def backup_users_data(data):
     try:
@@ -143,7 +144,7 @@ def backup_users_data(data):
         logging.error(f"Backup error: {e}")
         raise
 
-# Google Sheets-ga ma'lumotlarni saqlash (backup bilan, retry bilan)
+# Foydalanuvchilar uchun Google Sheets-ga ma'lumotlarni saqlash (backup bilan, retry bilan)
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(2), retry=retry_if_exception_type(Exception))
 def save_users_data(data):
     try:
@@ -177,24 +178,36 @@ def send_videos(user_id, video_file_ids):
     for video_file_id in video_file_ids:
         bot.send_video(user_id, video_file_id, supports_streaming=True)
 
-# Video katalogi bilan ishlash uchun yordamchi funksiyalar
+# Video katalogini Google Sheets-dan yuklash (retry bilan)
+@retry(stop=stop_after_attempt(3), wait=wait_fixed(2), retry=retry_if_exception_type(Exception))
 def load_video_catalog():
     try:
-        with open("video_catalog.json", "r") as f:
-            return json.load(f)
-    except FileNotFoundError:
-        return {}
+        records = video_catalog_sheet.get_all_records()
+        catalog = {}
+        for row in records:
+            index = str(row.get('index', ''))
+            file_id = row.get('file_id', '')
+            if index and file_id:
+                catalog[index] = file_id
+        logging.info(f"Loaded video catalog with {len(catalog)} entries from Google Sheets")
+        return catalog
     except Exception as e:
-        logging.error(f"❌ video_catalog.json ochishda xatolik: {e}")
+        logging.error(f"❌ Error loading video catalog from Google Sheets: {e}")
         return {}
 
+# Video katalogini Google Sheets-ga saqlash (retry bilan)
+@retry(stop=stop_after_attempt(3), wait=wait_fixed(2), retry=retry_if_exception_type(Exception))
 def save_video_catalog(data):
     try:
-        with open("video_catalog.json", "w") as f:
-            json.dump(data, f, indent=2)
+        headers = ['index', 'file_id']
+        all_data = [headers]
+        for index, file_id in data.items():
+            all_data.append([index, file_id])
+        video_catalog_sheet.update(values=all_data, range_name='A1')
+        logging.info(f"Video catalog saved successfully with {len(data)} entries to Google Sheets")
         return True
     except Exception as e:
-        logging.error(f"❌ video_catalog.json saqlashda xatolik: {e}")
+        logging.error(f"❌ Error saving video catalog to Google Sheets: {e}")
         return False
 
 def send_gift_video(user_id):
@@ -564,9 +577,9 @@ def handle_channel_video_post(message):
         saved = save_video_catalog(catalog)
 
         if saved:
-            bot.send_message(OWNER_ID, f"✅ {index}-dars video `video_catalog.json` faylga yozildi.")
+            bot.send_message(OWNER_ID, f"✅ {index}-dars video Google Sheets'ga yozildi.")
         else:
-            bot.send_message(OWNER_ID, "❌ Xatolik: faylga yozib bo‘lmadi.")
+            bot.send_message(OWNER_ID, "❌ Xatolik: Google Sheets'ga yozib bo‘lmadi.")
 
     except Exception as e:
         bot.send_message(OWNER_ID, f"❌ Kanaldan video yozishda xatolik: {e}")
