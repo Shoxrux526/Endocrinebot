@@ -103,10 +103,18 @@ def menu(id):
     bot.send_message(id, "🏠 Asosiy menyu ⬇️", reply_markup=keyboard)
 
 def subjects_menu(id):
-    keyboard = telebot.types.InlineKeyboardMarkup()
-    for subject_key, subject_name in SUBJECTS.items():
-        keyboard.add(telebot.types.InlineKeyboardButton(text=f"🎓 {subject_name}", callback_data=f'subject_{subject_key}'))
-    keyboard.add(telebot.types.InlineKeyboardButton(text="⬅️ Ortga qaytish", callback_data='back_to_menu'))
+    keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+    # Fanlarni qatorlar sifatida qo'shish (har 2 ta fan bitta qatorda)
+    subject_rows = []
+    for i, (subject_key, subject_name) in enumerate(SUBJECTS.items()):
+        if i % 2 == 0 and i > 0:
+            keyboard.row(*subject_rows)
+            subject_rows = []
+        subject_rows.append(f"🎓 {subject_name}")
+    if subject_rows:  # Oxirgi qatorni qo'shish
+        keyboard.row(*subject_rows)
+    # Ortga qaytish tugmasini qo'shish
+    keyboard.row("⬅️ Ortga qaytish")
     bot.send_message(id, "📚 Fanlar ro‘yxati:", reply_markup=keyboard)
 
 # Google Sheets-dan foydalanuvchilar ma'lumotlarini yuklash (retry bilan)
@@ -348,13 +356,6 @@ def query_handler(call):
                 msg_start = "🤖 Ushbu botdan foydalanish uchun quyidagi kanalga qo‘shiling va Obunani tekshirish tugmasini bosing: \n\n📢 @medstone_usmle"
                 bot.send_message(user_id, msg_start, reply_markup=markup)
 
-        elif call.data.startswith('subject_'):
-            subject = call.data.replace('subject_', '')
-            if subject in SUBJECTS:
-                send_gift_video(user_id, subject)
-            else:
-                bot.send_message(user_id, "⚠️ Noto‘g‘ri fan tanlandi!")
-
         elif call.data == 'back_to_menu':
             menu(user_id)
 
@@ -557,6 +558,16 @@ def send_text(message):
                 bot.send_message(user_id, "📢 Broadcast uchun /broadcast buyrug‘ini ishlatishingiz mumkin!")
             else:
                 bot.send_message(user_id, "🚫 Bu buyruq faqat admin uchun!")
+        # Fanlarni tekshirish
+        elif message.text.startswith("🎓 "):
+            subject_name = message.text.replace("🎓 ", "")
+            subject_key = next((key for key, value in SUBJECTS.items() if value == subject_name), None)
+            if subject_key:
+                send_gift_video(user_id, subject_key)
+            else:
+                bot.send_message(user_id, "⚠️ Noto‘g‘ri fan tanlandi!")
+        elif message.text == "⬅️ Ortga qaytish":
+            menu(user_id)
     except Exception as e:
         bot.send_message(user_id, "⚠️ Bu buyruqda xatolik yuz berdi, iltimos, admin xatoni tuzatishini kuting!")
         bot.send_message(OWNER_ID, f"⚠️ Botingizda xatolik: {str(e)}")
