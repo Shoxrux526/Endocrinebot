@@ -255,27 +255,39 @@ def send_gift_video(user_id, subject=None):
     user = str(user_id)
     balance = data['balance'].get(user, 0)
     paid_subjects = data['paid_subjects'].get(user, {})
-    video_count = balance // 5 if subject not in paid_subjects else float('inf')  # To'lovli fanlarda cheksiz
 
-    if subject and subject not in paid_subjects and video_count == 0:
+    if subject and subject not in paid_subjects and balance < 5:
         bot.send_message(user_id, f'⚠️ {SUBJECTS[subject]["name"]} uchun ballaringiz yetarli emas. Sotib olishni ko‘rib chiqing! 💳')
         return
 
     sent_videos = []
-    for i in range(1, min(3, video_count) + 1):  # Maksimum 3 video, agar to'lovli bo'lmasa
-        video_index = str(i)
-        key = f"{subject.lower()}_{video_index}" if subject else video_index
-        if key in catalog:
-            bot.send_video(user_id, catalog[key], supports_streaming=True)
-            sent_videos.append(video_index)
+    
+    if subject in paid_subjects:
+        # ✅ To‘lov qilgan foydalanuvchi — barcha videolarni yuboramiz
+        for key, file_id in catalog.items():
+            if key.startswith(f"{subject.lower()}_"):
+                bot.send_video(user_id, file_id, supports_streaming=True)
+                sent_videos.append(key.split('_')[1])
+        if sent_videos:
+            bot.send_message(user_id, f"🎥 {len(sent_videos)} ta {SUBJECTS[subject]['name']} dars videolari sizga yuborildi! ✅")
         else:
-            bot.send_message(user_id, f"⚠️ {SUBJECTS.get(subject, 'Umumiy')} {video_index}-dars video topilmadi.")
-            return
-
-    if sent_videos:
-        bot.send_message(user_id, f"🎥 {', '.join(sent_videos)}-dars videolar sizga jo‘natildi! {'Ajoyib natija!' if len(sent_videos) >= 3 else 'Ko‘proq uchun fanni sotib oling!'} 💳")
+            bot.send_message(user_id, f"⚠️ {SUBJECTS[subject]['name']} uchun hech qanday video topilmadi.")
     else:
-        bot.send_message(user_id, '⚠️ Hech qanday video topilmadi.')
+        # ⚠️ To‘lov qilmagan — faqat balansi yetadigan 1–3 video
+        max_videos = min(3, balance // 5)
+        for i in range(1, max_videos + 1):
+            key = f"{subject.lower()}_{i}"
+            if key in catalog:
+                bot.send_video(user_id, catalog[key], supports_streaming=True)
+                sent_videos.append(str(i))
+                data['balance'][user] -= 5  # Har bir video uchun 5 ball
+        if sent_videos:
+            bot.send_message(user_id, f"🎥 {', '.join(sent_videos)}-dars videolar sizga yuborildi! Ko‘proq uchun fanni sotib oling 💳")
+        else:
+            bot.send_message(user_id, f"⚠️ {SUBJECTS[subject]['name']} bo‘yicha yetarli ball topilmadi yoki video mavjud emas.")
+
+    save_users_data(data)
+
 
 @bot.message_handler(commands=['start'])
 def start(message):
