@@ -579,15 +579,15 @@ def send_text(message):
             subject_key = next((key for key, value in SUBJECTS.items() if value["name"] == subject_name), None)
             if subject_key:
                 bot.send_invoice(
-                    user_id,
+                    chat_id=user_id,
                     title=f"{SUBJECTS[subject_key]['name']} kursi",
                     description=f"{SUBJECTS[subject_key]['name']} bo'yicha barcha videolarga kirish",
-                    payload=f"purchase_{subject_key}_{user_id}",
                     provider_token="398062629:TEST:999999999_F91D8F69C042267444B74CC0B3C747757EB0E065",  # Test token
                     currency="UZS",
                     prices=[{"label": f"{SUBJECTS[subject_key]['name']} narxi", "amount": SUBJECTS[subject_key]['price']}],
                     need_name=True,
-                    need_phone_number=True
+                    need_phone_number=True,
+                    start_parameter=f"purchase_{subject_key}_{user_id}"  # Payload o'rniga start_parameter
                 )
             else:
                 bot.send_message(user_id, "⚠️ Noto‘g‘ri fan tanlandi!")
