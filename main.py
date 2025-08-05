@@ -4,23 +4,18 @@ from flask import Flask, request
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import os
-from dotenv import load_dotenv
-import time
-import logging
 from tenacity import retry, stop_after_attempt, wait_fixed, retry_if_exception_type
+import logging
 
 # Loglash sozlamalari
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Muhit o'zgaruvchilarini yuklash
-load_dotenv()
-
-# TOKEN DETALLARI
-TOKEN = "Ball"
+# Environment o‘zgaruvchilarini yuklash
 BOT_TOKEN = os.getenv("BOT_TOKEN", "7559962637:AAH8Xyb4roZWJ061WEYT2a5TAB9Epq4uFN8")
 PAYMENT_CHANNEL = "@medstone_usmle"
 OWNER_ID = int(os.getenv("OWNER_ID", 725821571))
 CHANNELS = ["@medstone_usmle"]
+TOKEN = "Ball"
 Daily_bonus = 1
 Per_Refer = 1
 
@@ -182,57 +177,50 @@ def send_videos(user_id, video_file_ids):
     for video_file_id in video_file_ids:
         bot.send_video(user_id, video_file_id, supports_streaming=True)
 
+# Video katalogi bilan ishlash uchun yordamchi funksiyalar
+def load_video_catalog():
+    try:
+        with open("video_catalog.json", "r") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {}
+    except Exception as e:
+        logging.error(f"❌ video_catalog.json ochishda xatolik: {e}")
+        return {}
+
+def save_video_catalog(data):
+    try:
+        with open("video_catalog.json", "w") as f:
+            json.dump(data, f, indent=2)
+        return True
+    except Exception as e:
+        logging.error(f"❌ video_catalog.json saqlashda xatolik: {e}")
+        return False
+
 def send_gift_video(user_id):
     data = load_users_data()
+    catalog = load_video_catalog()
     balance = data['balance'].get(str(user_id), 0)
-    if 0 <= balance < 5:
-        video_file_ids = [
-            "BAACAgIAAxkBAAIBU2gAAbN4YfLHh1-kDWPeCOt5MeYqPgACBnEAAjw6CUjGxW6x5av7fzYE"
-        ]
-        for file_id in video_file_ids:
-            bot.send_video(user_id, file_id, supports_streaming=True)
-        bot.send_message(user_id, '🎥 1-dars videosi sizga muvaffaqiyatli jo‘natildi! 🚀')
-    elif 5 <= balance < 10:
-        video_file_ids = [
-            "BAACAgIAAxkBAAIBU2gAAbN4YfLHh1-kDWPeCOt5MeYqPgACBnEAAjw6CUjGxW6x5av7fzYE",
-            "BAACAgIAAxkBAAIBWmgAAbZAbia-c_7wYSISy_joamHjbQACTXEAAjw6CUhkurcWLc1GoDYE"
-        ]
-        for file_id in video_file_ids:
-            bot.send_video(user_id, file_id, supports_streaming=True)
-        bot.send_message(user_id, '🎥 1-dars va 2-dars videolar sizga jo‘natildi! \nKo‘proq darslarni qo‘lga kiritish uchun do‘stlaringizni taklif qilishni unutmang! ✨')
-    elif 10 <= balance < 15:
-        video_file_ids = [
-            "BAACAgIAAxkBAAIBU2gAAbN4YfLHh1-kDWPeCOt5MeYqPgACBnEAAjw6CUjGxW6x5av7fzYE",
-            "BAACAgIAAxkBAAIBWmgAAbZAbia-c_7wYSISy_joamHjbQACTXEAAjw6CUhkurcWLc1GoDYE",
-            "BAACAgIAAxkBAAIBXmgAAbcSA3vCd1cfx0n-KWz31uByEQACW3EAAjw6CUipZbePUW38cjYE"
-        ]
-        for file_id in video_file_ids:
-            bot.send_video(user_id, file_id, supports_streaming=True)
-        bot.send_message(user_id, '🎥 1-dars, 2-dars va 3-dars videolar sizga jo‘natildi! Ajoyib natija! 👏')
-    elif 15 <= balance < 20:
-        video_file_ids = [
-            "BAACAgIAAxkBAAIBU2gAAbN4YfLHh1-kDWPeCOt5MeYqPgACBnEAAjw6CUjGxW6x5av7fzYE",
-            "BAACAgIAAxkBAAIBWmgAAbZAbia-c_7wYSISy_joamHjbQACTXEAAjw6CUhkurcWLc1GoDYE",
-            "BAACAgIAAxkBAAIBXmgAAbcSA3vCd1cfx0n-KWz31uByEQACW3EAAjw6CUipZbePUW38cjYE",
-            "BAACAgIAAxkBAAIBYmgAAbjFAYQQSiKjVuLv-URDUNdVMAACeHEAAjw6CUjCeqi600zGNjYE"
-        ]
-        for file_id in video_file_ids:
-            bot.send_video(user_id, file_id, supports_streaming=True)
-        bot.send_message(user_id, '🎥 1-dars, 2-dars, 3-dars va 4-dars videolar sizga jo‘natildi! \nNatijalaringizga havas qilsa arziydi! 🌟')
-    elif 20 <= balance < 525:
-        video_file_ids = [
-           "BAACAgIAAxkBAAIBU2gAAbN4YfLHh1-kDWPeCOt5MeYqPgACBnEAAjw6CUjGxW6x5av7fzYE",
-            "BAACAgIAAxkBAAIBWmgAAbZAbia-c_7wYSISy_joamHjbQACTXEAAjw6CUhkurcWLc1GoDYE",
-            "BAACAgIAAxkBAAIBXmgAAbcSA3vCd1cfx0n-KWz31uByEQACW3EAAjw6CUipZbePUW38cjYE",
-            "BAACAgIAAxkBAAIBYmgAAbjFAYQQSiKjVuLv-URDUNdVMAACeHEAAjw6CUjCeqi600zGNjYE",
-            "BAACAgIAAxkBAAIBZmgAAbpCNCRe4YoEy_xY69Nzar0NCAACjHEAAjw6CUht5iOV4UxOFDYE",
-            "BAACAgIAAxkBAAIBamgAAbsS08QgvLZ1w7dgrflI_xtMEQACk3EAAjw6CUgKGvSfuapW4TYE"
-        ]
-        for file_id in video_file_ids:
-            bot.send_video(user_id, file_id, supports_streaming=True)
-        bot.send_message(user_id, '🎥 1-dars, 2-dars, 3-dars, 4-dars va 5-dars videolar sizga jo‘natildi! \nShu zaylda davom etib butun kursni ham yutib olishingiz mumkin! 🎉')
-    else:
+    video_count = balance // 5  # Har 5 ball uchun 1 video
+    sent_videos = []
+
+    if video_count == 0:
         bot.send_message(user_id, '⚠️ Kechirasiz, ballaringiz yetarli emas. Do‘stlaringizni taklif qilib, ball to‘plang! 🚀')
+        return
+
+    for i in range(1, video_count + 1):
+        video_index = str(i)
+        if video_index in catalog:
+            bot.send_video(user_id, catalog[video_index], supports_streaming=True)
+            sent_videos.append(video_index)
+        else:
+            bot.send_message(user_id, f"⚠️ {video_index}-dars video topilmadi. Admin bilan bog‘laning!")
+            return
+
+    if sent_videos:
+        bot.send_message(user_id, f"🎥 {', '.join(sent_videos)}-dars videolar sizga jo‘natildi! {'Ajoyib natija!' if video_count >= 3 else 'Ko‘proq darslar uchun do‘stlaringizni taklif qiling!'} 🚀")
+    else:
+        bot.send_message(user_id, '⚠️ Hech qanday video topilmadi. Admin bilan bog‘laning!')
 
 @bot.message_handler(commands=['start'])
 def start(message):
@@ -551,10 +539,37 @@ def send_text(message):
         bot.send_message(message.chat.id, "⚠️ Bu buyruqda xatolik yuz berdi, iltimos, admin xatoni tuzatishini kuting!")
         bot.send_message(OWNER_ID, f"⚠️ Botingizda xatolik: {str(e)}")
 
-@bot.message_handler(content_types=['video'])
-def handle_video(message):
-    video_file_id = message.video.file_id
-    bot.send_message(message.chat.id, f"🎥 Video fayl ID si: {video_file_id}")
+@bot.channel_post_handler(content_types=['video'])
+def handle_channel_video_post(message):
+    try:
+        # Faqat sizning kanalga tegishli postlar ishlovchi bo‘lishi kerak
+        if message.chat.username != "medstone_usmle":
+            return
+
+        file_id = message.video.file_id
+        caption = message.caption.strip() if message.caption else None
+
+        if not caption or not caption.isdigit():
+            bot.send_message(OWNER_ID, f"⚠️ Kanalga video yuklandi, lekin caption noto‘g‘ri edi: {caption}")
+            return
+
+        index = caption
+        catalog = load_video_catalog()
+
+        if index in catalog:
+            bot.send_message(OWNER_ID, f"⚠️ {index}-raqamli video allaqachon mavjud! O‘zgartirmadi.")
+            return
+
+        catalog[index] = file_id
+        saved = save_video_catalog(catalog)
+
+        if saved:
+            bot.send_message(OWNER_ID, f"✅ {index}-dars video `video_catalog.json` faylga yozildi.")
+        else:
+            bot.send_message(OWNER_ID, "❌ Xatolik: faylga yozib bo‘lmadi.")
+
+    except Exception as e:
+        bot.send_message(OWNER_ID, f"❌ Kanaldan video yozishda xatolik: {e}")
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
