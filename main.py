@@ -491,33 +491,33 @@ def process_broadcast(message, broadcast_type):
                 if "Forbidden" in str(e):
                     blocked_users.append(user_id)
                 logging.error(f"Error sending to {user_id}: {str(e)}")
-                if blocked_users:
-                            for user_id in blocked_users:
-                                if user_id in data['referred']:
-                                    del data['referred'][user_id]
-                                    del data['referby'][user_id]
-                                    del data['balance'][user_id]
-                                    del data['checkin'][user_id]
-                                    del data['DailyQuiz'][user_id]
-                                    del data['withd'][user_id]
-                                    del data['id'][user_id]
-                                    del data['refer'][user_id]
-                                    del data['paid_subjects'][user_id]
-                            save_users_data(data)
 
-                       result_msg = f"🎉 Broadcast yakunlandi!\n" \
-                                    f"✅ Muvafaqiyatli: {success_count}\n" \
-                                    f"❌ Muvaffaqiyatsiz: {fail_count}\n" \
-                                    f"🚫 Bloklangan foydalanuvchilar: {len(blocked_users)}"
-                       bot.send_message(OWNER_ID, result_msg)
+        if blocked_users:
+            for user_id in blocked_users:
+                if user_id in data['referred']:
+                    del data['referred'][user_id]
+                    del data['referby'][user_id]
+                    del data['balance'][user_id]
+                    del data['checkin'][user_id]
+                    del data['DailyQuiz'][user_id]
+                    del data['withd'][user_id]
+                    del data['id'][user_id]
+                    del data['refer'][user_id]
+                    del data['paid_subjects'][user_id]
+            save_users_data(data)
+
+        result_msg = f"🎉 Broadcast yakunlandi!\n" \
+                     f"✅ Muvafaqiyatli: {success_count}\n" \
+                     f"❌ Muvaffaqiyatsiz: {fail_count}\n" \
+                     f"🚫 Bloklangan foydalanuvchilar: {len(blocked_users)}"
+        bot.send_message(OWNER_ID, result_msg)
+        bot.send_message(OWNER_ID, "🏠 Broadcast yakunlandi. Asosiy menyuga qaytish:", reply_markup=telebot.types.ReplyKeyboardRemove())
+        menu(OWNER_ID)
+
+    except Exception as e:
+        bot.reply_to(message, f"⚠️ Xatolik yuz berdi: {str(e)}")
+        bot.send_message(OWNER_ID, f"⚠️ Broadcast xatoligi: {str(e)}")
         
-                       bot.send_message(OWNER_ID, "🏠 Broadcast yakunlandi. Asosiy menyuga qaytish:", reply_markup=telebot.types.ReplyKeyboardRemove())
-                       menu(OWNER_ID)
-
-                   except Exception as e:
-                       bot.reply_to(message, f"⚠️ Xatolik yuz berdi: {str(e)}")
-                       bot.send_message(OWNER_ID, f"⚠️ Broadcast xatoligi: {str(e)}")
-
 @bot.message_handler(content_types=['text'])
 def send_text(message):
     try:
