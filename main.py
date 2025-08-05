@@ -579,7 +579,13 @@ def send_text(message):
             subject_key = next((key for key, value in SUBJECTS.items() if value["name"] == subject_name), None)
             if subject_key:
                 # Narxni tiyinlarga o'girish (1 so'm = 100 tiyin)
-                price_in_tiyin = SUBJECTS[subject_key]['price'] * 100
+                price_in_soom = SUBJECTS[subject_key]['price']
+                price_in_tiyin = price_in_soom * 100
+                if price_in_tiyin <= 0:
+                    bot.send_message(user_id, f"⚠️ {subject_key} uchun narx noto‘g‘ri! Iltimos, admin bilan bog‘laning.")
+                    bot.send_message(OWNER_ID, f"⚠️ {subject_key} narxi: {price_in_soom} so‘m (tiyin: {price_in_tiyin}) xato!")
+                    return
+                logging.info(f"Sending invoice for {subject_key} with price {price_in_tiyin} tiyin")
                 bot.send_invoice(
                     chat_id=user_id,
                     title=f"{SUBJECTS[subject_key]['name']} kursi",
