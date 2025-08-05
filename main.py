@@ -543,7 +543,7 @@ def send_text(message):
 def handle_channel_video_post(message):
     try:
         # Faqat sizning kanalga tegishli postlar ishlovchi bo‘lishi kerak
-        if message.chat.username != "medstone_usmle":
+        if message.chat.username != "marafonbotbazasi":
             return
 
         file_id = message.video.file_id
