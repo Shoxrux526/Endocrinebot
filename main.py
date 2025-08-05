@@ -578,14 +578,16 @@ def send_text(message):
             subject_name = message.text.replace("💳 ", "").replace(" sotib olish", "")
             subject_key = next((key for key, value in SUBJECTS.items() if value["name"] == subject_name), None)
             if subject_key:
+                # Narxni tiyinlarga o'girish (1 so'm = 100 tiyin)
+                price_in_tiyin = SUBJECTS[subject_key]['price'] * 100
                 bot.send_invoice(
                     chat_id=user_id,
                     title=f"{SUBJECTS[subject_key]['name']} kursi",
                     description=f"{SUBJECTS[subject_key]['name']} bo'yicha barcha videolarga kirish",
-                    invoice_payload=json.dumps({"subject": subject_key, "user_id": user_id}),  # To'g'ri formatda payload
+                    invoice_payload=json.dumps({"subject": subject_key, "user_id": user_id}),
                     provider_token="398062629:TEST:999999999_F91D8F69C042267444B74CC0B3C747757EB0E065",  # Test token
                     currency="UZS",
-                    prices=[{"label": f"{SUBJECTS[subject_key]['name']} narxi", "amount": SUBJECTS[subject_key]['price']}],
+                    prices=[{"label": f"{SUBJECTS[subject_key]['name']} narxi", "amount": price_in_tiyin}],
                     need_name=True,
                     need_phone_number=True
                 )
