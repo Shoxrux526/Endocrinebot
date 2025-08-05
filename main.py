@@ -20,18 +20,18 @@ TOKEN = "Ball"
 Daily_bonus = 1
 Per_Refer = 1
 
-# Fanlar ro‘yxati (qo'shimcha fanlarni shu yerda qo'shing)
+# Fanlar ro‘yxati va har birining narxi (UZS da)
 SUBJECTS = {
-    "immunology": "Immunologiya",
-    "cardiology": "Kardiologiya",
-    "anatomy": "Anatomiya",
-    "pathology": "Patologiya",
-    "pharmacology": "Farmakologiya",
-    "surgery": "Jarrohlik",
-    "pediatrics": "Pediatriya",
-    "neurology": "Nevrologiya",
-    "endocrinology": "Endokrinologiya",
-    "oncology": "Onkologiya"
+    "immunology": {"name": "Immunologiya", "price": 50000},
+    "cardiology": {"name": "Kardiologiya", "price": 60000},
+    "anatomy": {"name": "Anatomiya", "price": 45000},
+    "pathology": {"name": "Patologiya", "price": 55000},
+    "pharmacology": {"name": "Farmakologiya", "price": 50000},
+    "surgery": {"name": "Jarrohlik", "price": 65000},
+    "pediatrics": {"name": "Pediatriya", "price": 50000},
+    "neurology": {"name": "Nevrologiya", "price": 60000},
+    "endocrinology": {"name": "Endokrinologiya", "price": 55000},
+    "oncology": {"name": "Onkologiya", "price": 60000}
 }
 
 bot = telebot.TeleBot(BOT_TOKEN)
@@ -50,7 +50,7 @@ if creds_json:
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, SCOPE)
     client = gspread.authorize(creds)
     sheet = client.open(SPREADSHEET_NAME).sheet1  # Foydalanuvchilar uchun asosiy varaq
-    backup_sheet = client.open(SPREADSHEET_NAME).get_worksheet(1)  # Foydalanuvchilar uchun backup varaq
+    backup_sheet = client.open(SPREADSHEET_NAME).get_worksheet(1)  # Backup varaq
     video_catalog_sheet = client.open(SPREADSHEET_NAME).get_worksheet(2)  # Video katalogi uchun varaq
 else:
     raise ValueError("Google Sheets credentials not found in environment variables!")
@@ -104,20 +104,18 @@ def menu(id):
 
 def subjects_menu(id):
     keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-    # Fanlarni qatorlar sifatida qo'shish (har 2 ta fan bitta qatorda)
     subject_rows = []
-    for i, (subject_key, subject_name) in enumerate(SUBJECTS.items()):
+    for i, (subject_key, subject_data) in enumerate(SUBJECTS.items()):
         if i % 2 == 0 and i > 0:
             keyboard.row(*subject_rows)
             subject_rows = []
-        subject_rows.append(f"🎓 {subject_name}")
-    if subject_rows:  # Oxirgi qatorni qo'shish
+        subject_rows.append(f"🎓 {subject_data['name']}")
+    if subject_rows:
         keyboard.row(*subject_rows)
-    # Ortga qaytish tugmasini qo'shish
     keyboard.row("⬅️ Ortga qaytish")
     bot.send_message(id, "📚 Fanlar ro‘yxati:", reply_markup=keyboard)
 
-# Google Sheets-dan foydalanuvchilar ma'lumotlarini yuklash (retry bilan)
+# Google Sheets-dan foydalanuvchilar ma'lumotlarini yuklash
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(2), retry=retry_if_exception_type(Exception))
 def load_users_data():
     try:
@@ -131,7 +129,8 @@ def load_users_data():
             "withd": {},
             "id": {},
             "total": 0,
-            "refer": {}
+            "refer": {},
+            "paid_subjects": {}  # Har bir foydalanuvchi uchun to'lovli fanlar
         }
         for row in records:
             user_id = str(row['user_id'])
@@ -143,6 +142,7 @@ def load_users_data():
             data['withd'][user_id] = row.get('withd', 0)
             data['id'][user_id] = row.get('id', 0)
             data['refer'][user_id] = row.get('refer', False)
+            data['paid_subjects'][user_id] = json.loads(row.get('paid_subjects', '{}'))
         data['total'] = len(data['referred'])
         logging.info(f"Loaded {data['total']} users from Google Sheets")
         return data
@@ -150,11 +150,11 @@ def load_users_data():
         logging.error(f"Error loading data from Google Sheets: {e}")
         raise
 
-# Foydalanuvchilar uchun backup funksiyasi (retry bilan)
+# Backup va saqlash funksiyalari
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(2), retry=retry_if_exception_type(Exception))
 def backup_users_data(data):
     try:
-        headers = ['user_id', 'referred', 'referby', 'checkin', 'DailyQuiz', 'balance', 'withd', 'id', 'refer']
+        headers = ['user_id', 'referred', 'referby', 'checkin', 'DailyQuiz', 'balance', 'withd', 'id', 'refer', 'paid_subjects']
         all_data = [headers]
         for user_id in data['referred']:
             row = [
@@ -166,7 +166,8 @@ def backup_users_data(data):
                 data['balance'].get(user_id, 0),
                 data['withd'].get(user_id, 0),
                 data['id'].get(user_id, 0),
-                data['refer'].get(user_id, False)
+                data['refer'].get(user_id, False),
+                json.dumps(data['paid_subjects'].get(user_id, {}))
             ]
             all_data.append(row)
         backup_sheet.update(values=all_data, range_name='A1')
@@ -175,16 +176,15 @@ def backup_users_data(data):
         logging.error(f"Backup error: {e}")
         raise
 
-# Foydalanuvchilar uchun Google Sheets-ga ma'lumotlarni saqlash (backup bilan, retry bilan)
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(2), retry=retry_if_exception_type(Exception))
 def save_users_data(data):
     try:
         if not data['referred']:
             logging.warning("Data is empty, skipping save to avoid data loss")
             return
-        backup_users_data(data)  # Har safar saqlashdan oldin backup
+        backup_users_data(data)
         logging.info(f"Saving data for {len(data['referred'])} users to Google Sheets")
-        headers = ['user_id', 'referred', 'referby', 'checkin', 'DailyQuiz', 'balance', 'withd', 'id', 'refer']
+        headers = ['user_id', 'referred', 'referby', 'checkin', 'DailyQuiz', 'balance', 'withd', 'id', 'refer', 'paid_subjects']
         all_data = [headers]
         for user_id in data['referred']:
             row = [
@@ -196,7 +196,8 @@ def save_users_data(data):
                 data['balance'].get(user_id, 0),
                 data['withd'].get(user_id, 0),
                 data['id'].get(user_id, 0),
-                data['refer'].get(user_id, False)
+                data['refer'].get(user_id, False),
+                json.dumps(data['paid_subjects'].get(user_id, {}))
             ]
             all_data.append(row)
         sheet.update(values=all_data, range_name='A1')
@@ -209,7 +210,6 @@ def send_videos(user_id, video_file_ids):
     for video_file_id in video_file_ids:
         bot.send_video(user_id, video_file_id, supports_streaming=True)
 
-# Video katalogini Google Sheets-dan yuklash (retry bilan)
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(2), retry=retry_if_exception_type(Exception))
 def load_video_catalog(subject=None):
     try:
@@ -222,13 +222,12 @@ def load_video_catalog(subject=None):
             if subject_key and index and file_id:
                 if subject is None or subject.lower() == subject_key:
                     catalog[f"{subject_key}_{index}"] = file_id
-        logging.info(f"Loaded video catalog for {subject or 'all'} with {len(catalog)} entries from Google Sheets")
+        logging.info(f"Loaded video catalog for {subject or 'all'} with {len(catalog)} entries")
         return catalog
     except Exception as e:
-        logging.error(f"❌ Error loading video catalog from Google Sheets: {e}")
+        logging.error(f"❌ Error loading video catalog: {e}")
         return {}
 
-# Video katalogini Google Sheets-ga saqlash (retry bilan)
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(2), retry=retry_if_exception_type(Exception))
 def save_video_catalog(data):
     try:
@@ -238,37 +237,39 @@ def save_video_catalog(data):
             subject_key, index = key.split('_', 1)
             all_data.append([subject_key, index, file_id])
         video_catalog_sheet.update(values=all_data, range_name='A1')
-        logging.info(f"Video catalog saved successfully with {len(data)} entries to Google Sheets")
+        logging.info(f"Video catalog saved with {len(data)} entries")
         return True
     except Exception as e:
-        logging.error(f"❌ Error saving video catalog to Google Sheets: {e}")
+        logging.error(f"❌ Error saving video catalog: {e}")
         return False
 
 def send_gift_video(user_id, subject=None):
     data = load_users_data()
     catalog = load_video_catalog(subject)
-    balance = data['balance'].get(str(user_id), 0)
-    video_count = balance // 5  # Har 5 ball uchun 1 video
-    sent_videos = []
+    user = str(user_id)
+    balance = data['balance'].get(user, 0)
+    paid_subjects = data['paid_subjects'].get(user, {})
+    video_count = balance // 5 if subject not in paid_subjects else float('inf')
 
-    if video_count == 0:
-        bot.send_message(user_id, '⚠️ Kechirasiz, ballaringiz yetarli emas. Do‘stlaringizni taklif qilib, ball to‘plang! 🚀')
+    if not (subject in paid_subjects or video_count > 0):
+        bot.send_message(user_id, '⚠️ Kechirasiz, ballaringiz yetarli emas yoki fan uchun to‘lov qilmadingiz. Sotib olishni ko‘rib chiqing! 💳')
         return
 
-    for i in range(1, video_count + 1):
+    sent_videos = []
+    for i in range(1, min(3, video_count) + 1):
         video_index = str(i)
         key = f"{subject.lower()}_{video_index}" if subject else video_index
         if key in catalog:
             bot.send_video(user_id, catalog[key], supports_streaming=True)
             sent_videos.append(video_index)
         else:
-            bot.send_message(user_id, f"⚠️ {SUBJECTS.get(subject, 'Umumiy')} {video_index}-dars video topilmadi. Admin bilan bog‘laning!")
+            bot.send_message(user_id, f"⚠️ {SUBJECTS.get(subject, 'Umumiy')['name']} {video_index}-dars video topilmadi.")
             return
 
     if sent_videos:
-        bot.send_message(user_id, f"🎥 {', '.join(sent_videos)}-dars videolar sizga jo‘natildi! {'Ajoyib natija!' if video_count >= 3 else 'Ko‘proq darslar uchun do‘stlaringizni taklif qiling!'} 🚀")
+        bot.send_message(user_id, f"🎥 {', '.join(sent_videos)}-dars videolar sizga jo‘natildi! {'Ajoyib natija!' if len(sent_videos) >= 3 else 'Ko‘proq uchun fan sotib oling!'} 💳")
     else:
-        bot.send_message(user_id, '⚠️ Hech qanday video topilmadi. Admin bilan bog‘laning!')
+        bot.send_message(user_id, '⚠️ Hech qanday video topilmadi.')
 
 @bot.message_handler(commands=['start'])
 def start(message):
@@ -297,6 +298,8 @@ def start(message):
             data['withd'][user] = 0
         if user not in data['id']:
             data['id'][user] = len(data['referred'])
+        if user not in data['paid_subjects']:
+            data['paid_subjects'][user] = {}
         save_users_data(data)
         markup = telebot.types.InlineKeyboardMarkup()
         markup.add(telebot.types.InlineKeyboardButton(
@@ -415,7 +418,6 @@ def handle_broadcast(message):
         if message.chat.id != OWNER_ID:
             bot.reply_to(message, "🚫 Bu buyruq faqat admin uchun mavjud!")
             return
-        
         markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
         markup.add(
             telebot.types.KeyboardButton("✍️ Matn"),
@@ -423,9 +425,7 @@ def handle_broadcast(message):
             telebot.types.KeyboardButton("🎥 Video")
         )
         bot.reply_to(message, "📢 Broadcast turini tanlang:", reply_markup=markup)
-        
         bot.register_next_step_handler(message, process_broadcast_type)
-        
     except Exception as e:
         bot.reply_to(message, f"⚠️ Xatolik yuz berdi: {str(e)}")
         bot.send_message(OWNER_ID, f"⚠️ Broadcast xatoligi: {str(e)}")
@@ -434,15 +434,13 @@ def process_broadcast_type(message):
     try:
         if message.chat.id != OWNER_ID:
             return
-        
         broadcast_type = message.text
         if broadcast_type not in ["✍️ Matn", "📸 Rasm", "🎥 Video"]:
             bot.reply_to(message, "⚠️ Iltimos, to‘g‘ri tanlov qiling! Qayta urining:", reply_markup=telebot.types.ReplyKeyboardRemove())
             handle_broadcast(message)
             return
-
         if broadcast_type == "✍️ Matn":
-            msg = bot.send_message(message.chat.id, "📝 Yuboriladigan matn ni kiriting (Markdown qo‘llab-quvvatlanadi):\nFiltrlash uchun: /filter <ball> (masalan, /filter 10)")
+            msg = bot.send_message(message.chat.id, "📝 Yuboriladigan matn ni kiriting (Markdown qo‘llab-quvvatlanadi):\nFiltrlash uchun: /filter <ball>")
             bot.register_next_step_handler(msg, lambda m: process_broadcast(m, 'text'))
         elif broadcast_type == "📸 Rasm":
             msg = bot.send_message(message.chat.id, "📸 Yuboriladigan rasm ni yuklang va izoh qo‘shing (ixtiyoriy):")
@@ -450,7 +448,6 @@ def process_broadcast_type(message):
         elif broadcast_type == "🎥 Video":
             msg = bot.send_message(message.chat.id, "🎥 Yuboriladigan video ni yuklang va izoh qo‘shing (ixtiyoriy):")
             bot.register_next_step_handler(msg, lambda m: process_broadcast(m, 'video'))
-        
     except Exception as e:
         bot.reply_to(message, f"⚠️ Xatolik yuz berdi: {str(e)}")
         bot.send_message(OWNER_ID, f"⚠️ Broadcast xatoligi: {str(e)}")
@@ -459,10 +456,8 @@ def process_broadcast(message, broadcast_type):
     try:
         if message.chat.id != OWNER_ID:
             return
-
         data = load_users_data()
         user_ids = list(data['referred'].keys())
-        
         min_balance = 0
         if broadcast_type == 'text' and '/filter' in message.text:
             try:
@@ -472,17 +467,13 @@ def process_broadcast(message, broadcast_type):
             except:
                 bot.reply_to(message, "⚠️ Filtrda xato! /filter <ball> formatidan foydalaning.")
                 return
-
         if not user_ids:
             bot.reply_to(message, "🚫 Foydalanuvchilar topilmadi!")
             return
-
         success_count = 0
         fail_count = 0
         blocked_users = []
-
         bot.reply_to(message, f"📢 Broadcast boshlandi. Jami {len(user_ids)} foydalanuvchi.")
-
         for user_id in user_ids:
             try:
                 if broadcast_type == 'text':
@@ -494,38 +485,38 @@ def process_broadcast(message, broadcast_type):
                     caption = message.caption or ""
                     bot.send_video(int(user_id), message.video.file_id, caption=caption)
                 success_count += 1
-                time.sleep(0.05)  # API cheklovlarini oldini olish uchun kutilish
+                time.sleep(0.05)
             except Exception as e:
                 fail_count += 1
                 if "Forbidden" in str(e):
                     blocked_users.append(user_id)
                 logging.error(f"Error sending to {user_id}: {str(e)}")
+                if blocked_users:
+                            for user_id in blocked_users:
+                                if user_id in data['referred']:
+                                    del data['referred'][user_id]
+                                    del data['referby'][user_id]
+                                    del data['balance'][user_id]
+                                    del data['checkin'][user_id]
+                                    del data['DailyQuiz'][user_id]
+                                    del data['withd'][user_id]
+                                    del data['id'][user_id]
+                                    del data['refer'][user_id]
+                                    del data['paid_subjects'][user_id]
+                            save_users_data(data)
 
-        if blocked_users:
-            for user_id in blocked_users:
-                if user_id in data['referred']:
-                    del data['referred'][user_id]
-                    del data['referby'][user_id]
-                    del data['balance'][user_id]
-                    del data['checkin'][user_id]
-                    del data['DailyQuiz'][user_id]
-                    del data['withd'][user_id]
-                    del data['id'][user_id]
-                    del data['refer'][user_id]
-            save_users_data(data)
-
-        result_msg = f"🎉 Broadcast yakunlandi!\n" \
-                     f"✅ Muvafaqiyatli: {success_count}\n" \
-                     f"❌ Muvaffaqiyatsiz: {fail_count}\n" \
-                     f"🚫 Bloklangan foydalanuvchilar: {len(blocked_users)}"
-        bot.send_message(OWNER_ID, result_msg)
+                       result_msg = f"🎉 Broadcast yakunlandi!\n" \
+                                    f"✅ Muvafaqiyatli: {success_count}\n" \
+                                    f"❌ Muvaffaqiyatsiz: {fail_count}\n" \
+                                    f"🚫 Bloklangan foydalanuvchilar: {len(blocked_users)}"
+                       bot.send_message(OWNER_ID, result_msg)
         
-        bot.send_message(OWNER_ID, "🏠 Broadcast yakunlandi. Asosiy menyuga qaytish:", reply_markup=telebot.types.ReplyKeyboardRemove())
-        menu(OWNER_ID)
+                       bot.send_message(OWNER_ID, "🏠 Broadcast yakunlandi. Asosiy menyuga qaytish:", reply_markup=telebot.types.ReplyKeyboardRemove())
+                       menu(OWNER_ID)
 
-    except Exception as e:
-        bot.reply_to(message, f"⚠️ Xatolik yuz berdi: {str(e)}")
-        bot.send_message(OWNER_ID, f"⚠️ Broadcast xatoligi: {str(e)}")
+                   except Exception as e:
+                       bot.reply_to(message, f"⚠️ Xatolik yuz berdi: {str(e)}")
+                       bot.send_message(OWNER_ID, f"⚠️ Broadcast xatoligi: {str(e)}")
 
 @bot.message_handler(content_types=['text'])
 def send_text(message):
@@ -558,12 +549,26 @@ def send_text(message):
                 bot.send_message(user_id, "📢 Broadcast uchun /broadcast buyrug‘ini ishlatishingiz mumkin!")
             else:
                 bot.send_message(user_id, "🚫 Bu buyruq faqat admin uchun!")
-        # Fanlarni tekshirish
         elif message.text.startswith("🎓 "):
             subject_name = message.text.replace("🎓 ", "")
-            subject_key = next((key for key, value in SUBJECTS.items() if value == subject_name), None)
+            subject_key = next((key for key, value in SUBJECTS.items() if value['name'] == subject_name), None)
             if subject_key:
-                send_gift_video(user_id, subject_key)
+                data = load_users_data()
+                user = str(user_id)
+                if subject_key in data['paid_subjects'].get(user, {}):
+                    send_gift_video(user_id, subject_key)
+                else:
+                    bot.send_invoice(
+                        user_id,
+                        title=f"{subject_name} kursi",
+                        description=f"{subject_name} bo'yicha videolar uchun kirish",
+                        payload=f"subject_purchase_{subject_key}_{user_id}",
+                        provider_token="398062629:TEST:999999999_F91D8F69C042267444B74CC0B3C747757EB0E065",
+                        currency="UZS",
+                        prices=[{"label": f"{subject_name} narxi", "amount": SUBJECTS[subject_key]['price']}],
+                        need_name=True,
+                        need_phone_number=True
+                    )
             else:
                 bot.send_message(user_id, "⚠️ Noto‘g‘ri fan tanlandi!")
         elif message.text == "⬅️ Ortga qaytish":
@@ -575,47 +580,58 @@ def send_text(message):
 @bot.channel_post_handler(content_types=['video'])
 def handle_channel_video_post(message):
     try:
-        # Faqat ruxsat etilgan kanallardan kelgan videolar ishlovchi bo‘lishi kerak
         if message.chat.username != "marafonbotbazasi":
             return
-
         file_id = message.video.file_id
         caption = message.caption.strip().lower() if message.caption else None
-
         if not caption:
             bot.send_message(OWNER_ID, f"⚠️ Kanalga video yuklandi, lekin caption yo‘q!")
             return
-
-        # Fan nomini va indeksni caption'dan ajratish
         subject_key = None
         index = None
         for key in SUBJECTS.keys():
             if f'#{key}' in caption:
                 subject_key = key
-                # Indeksni ajratish (raqamdan oldin #key bo'lsa)
                 index_part = caption.replace(f'#{key}', '').strip()
                 index = index_part if index_part.isdigit() else '1'
                 break
         if not subject_key or not index:
             bot.send_message(OWNER_ID, f"⚠️ Captionda to‘g‘ri fan tegi (#fan_nomi raqam) kiritilmagan: {caption}")
             return
-
         catalog = load_video_catalog()
         key = f"{subject_key}_{index}"
         if key in catalog:
-            bot.send_message(OWNER_ID, f"⚠️ {subject_key} {index}-raqamli video allaqachon mavjud! O‘zgartirmadi.")
+            bot.send_message(OWNER_ID, f"⚠️ {subject_key} {index}-raqamli video allaqachon mavjud!")
             return
-
         catalog[key] = file_id
         saved = save_video_catalog(catalog)
-
         if saved:
             bot.send_message(OWNER_ID, f"✅ {subject_key} {index}-dars video Google Sheets'ga yozildi.")
         else:
             bot.send_message(OWNER_ID, "❌ Xatolik: Google Sheets'ga yozib bo‘lmadi.")
-
     except Exception as e:
         bot.send_message(OWNER_ID, f"❌ Kanaldan video yozishda xatolik: {e}")
+
+@bot.pre_checkout_query_handler(func=lambda query: True)
+def process_pre_checkout_query(pre_checkout_query):
+    bot.answer_pre_checkout_query(pre_checkout_query.id, ok=True)
+
+@bot.message_handler(content_types=['successful_payment'])
+def process_successful_payment(message):
+    try:
+        payload = message.successful_payment.invoice_payload
+        if payload.startswith("subject_purchase_"):
+            _, subject_key, user_id = payload.split("_")
+            data = load_users_data()
+            user = str(user_id)
+            if user not in data['paid_subjects']:
+                data['paid_subjects'][user] = {}
+            data['paid_subjects'][user][subject_key] = True
+            save_users_data(data)
+            bot.send_message(int(user_id), f"🎉 {SUBJECTS[subject_key]['name']} kursi uchun to‘lov muvaffaqiyatli! Endi videolarga kirishingiz mumkin.")
+            send_gift_video(int(user_id), subject_key)
+    except Exception as e:
+        bot.send_message(OWNER_ID, f"⚠️ To'lovda xatolik: {str(e)}")
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
