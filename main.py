@@ -7,6 +7,7 @@ import os
 from tenacity import retry, stop_after_attempt, wait_fixed, retry_if_exception_type
 import logging
 import time
+from telebot.types import LabeledPrice
 
 # Loglash sozlamalari
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -540,70 +541,87 @@ def process_broadcast(message):
 def send_text(message):
     try:
         user_id = message.chat.id
-        if message.text == '🆔 Mening hisobim':
-            data = load_users_data()
-            user = str(user_id)
-            username = message.from_user.username if message.from_user.username else message.from_user.first_name
+        user = str(user_id)
+        text = message.text
+        data = load_users_data()
+
+        # Foydalanuvchi nomi
+        username = message.from_user.username if message.from_user.username else message.from_user.first_name
+
+        if text == '🆔 Mening hisobim':
             balance = data['balance'].get(user, 0)
             markup = telebot.types.InlineKeyboardMarkup()
-            markup.add(telebot.types.InlineKeyboardButton(text=f"💰 Balans: {balance} Ball", callback_data='balance'))
+            markup.add(telebot.types.InlineKeyboardButton(text=f"💰 Balans: {balance} {TOKEN}", callback_data='balance'))
             msg = f"👤 Foydalanuvchi: @{username}\n💰 Balans: {balance} {TOKEN}"
             bot.send_message(user_id, msg, reply_markup=markup)
-        elif message.text == '🙌🏻 Maxsus linkim':
+
+        elif text == '🙌🏻 Maxsus linkim':
             send_invite_link(user_id)
-        elif message.text == '🎁 Mening sovg\'am':
+
+        elif text == '🎁 Mening sovg\'am':
             subjects_menu(user_id)
-        elif message.text == '📚 Fanlar ro‘yxati':
+
+        elif text == '📚 Fanlar ro‘yxati':
             subjects_menu(user_id)
-        elif message.text == "📊 Statistika":
+
+        elif text == "📊 Statistika":
             if user_id == OWNER_ID:
-                data = load_users_data()
                 msg = f"📈 Jami foydalanuvchilar: {data['total']} ta"
                 bot.send_message(user_id, msg)
             else:
                 bot.send_message(user_id, "🚫 Ushbu buyruq faqat bot egasiga mavjud!")
-        elif message.text == "📢 Broadcast":
+
+        elif text == "📢 Broadcast":
             if user_id == OWNER_ID:
                 bot.send_message(user_id, "📢 Broadcast uchun /broadcast buyrug‘ini ishlatishingiz mumkin!")
             else:
                 bot.send_message(user_id, "🚫 Bu buyruq faqat admin uchun!")
-        elif message.text.startswith("🎓 "):
-            subject_name = message.text.replace("🎓 ", "")
+
+        elif text.startswith("🎓 "):
+            subject_name = text.replace("🎓 ", "")
             subject_key = next((key for key, value in SUBJECTS.items() if value["name"] == subject_name), None)
             if subject_key:
                 send_gift_video(user_id, subject_key)
             else:
                 bot.send_message(user_id, "⚠️ Noto‘g‘ri fan tanlandi!")
-        elif message.text.startswith("💳 ") and message.text.endswith("sotib olish"):
-            subject_name = message.text.replace("💳 ", "").replace(" sotib olish", "")
+
+        elif text.startswith("💳 ") and text.endswith("sotib olish"):
+            subject_name = text.replace("💳 ", "").replace(" sotib olish", "")
             subject_key = next((key for key, value in SUBJECTS.items() if value["name"] == subject_name), None)
             if subject_key:
-                # Narxni tiyinlarga o'girish (1 so'm = 100 tiyin)
                 price_in_soom = SUBJECTS[subject_key]['price']
-                price_in_tiyin = price_in_soom * 100
+                price_in_tiyin = int(price_in_soom * 100)
+
                 if price_in_tiyin <= 0:
                     bot.send_message(user_id, f"⚠️ {subject_key} uchun narx noto‘g‘ri! Iltimos, admin bilan bog‘laning.")
-                    bot.send_message(OWNER_ID, f"⚠️ {subject_key} narxi: {price_in_soom} so‘m (tiyin: {price_in_tiyin}) xato!")
+                    bot.send_message(OWNER_ID, f"⚠️ {subject_key} narxi: {price_in_soom} so‘m (tiyin: {price_in_tiyin}) noto‘g‘ri!")
                     return
+
                 logging.info(f"Sending invoice for {subject_key} with price {price_in_tiyin} tiyin")
+                from telebot.types import LabeledPrice
                 bot.send_invoice(
                     chat_id=user_id,
                     title=f"{SUBJECTS[subject_key]['name']} kursi",
                     description=f"{SUBJECTS[subject_key]['name']} bo'yicha barcha videolarga kirish",
                     invoice_payload=json.dumps({"subject": subject_key, "user_id": user_id}),
-                    provider_token="398062629:TEST:999999999_F91D8F69C042267444B74CC0B3C747757EB0E065",  # Test token
+                    provider_token="398062629:TEST:999999999_F91D8F69C042267444B74CC0B3C747757EB0E065",
                     currency="UZS",
-                    prices=[{"label": f"{SUBJECTS[subject_key]['name']} narxi", "amount": price_in_tiyin}],
+                    prices=[LabeledPrice(label=f"{SUBJECTS[subject_key]['name']} narxi", amount=price_in_tiyin)],
                     need_name=True,
                     need_phone_number=True
                 )
             else:
                 bot.send_message(user_id, "⚠️ Noto‘g‘ri fan tanlandi!")
-        elif message.text == "⬅️ Ortga qaytish":
+
+        elif text == "⬅️ Ortga qaytish":
             menu(user_id)
+
+        else:
+            bot.send_message(user_id, "🤖 Iltimos, menyudagi tugmalardan birini tanlang yoki /start buyrug‘ini yozing.")
+
     except Exception as e:
-        bot.send_message(user_id, "⚠️ Bu buyruqda xatolik yuz berdi, iltimos, admin xatoni tuzatishini kuting!")
-        bot.send_message(OWNER_ID, f"⚠️ Botingizda xatolik: {str(e)}")
+        bot.send_message(user_id, "⚠️ Buyruqni bajarishda xatolik yuz berdi.")
+        bot.send_message(OWNER_ID, f"❌ Xatolik `send_text` funksiyasida: {str(e)}")
 
 @bot.pre_checkout_query_handler(func=lambda query: True)
 def process_pre_checkout_query(pre_checkout_query):
