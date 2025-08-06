@@ -143,18 +143,20 @@ def subjects_menu(user_id, category, message_id=None):
     
     # Foydalanuvchi balansini olish
     data = load_users_data()
-    balance = data['balance'].get(str(user_id), 0)
-    available_lessons = 1 + (balance // 3)  # Birinchi video bepul, keyingilari har 3 ball uchun
+    user_id_str = str(user_id)
+    balance = data['balance'].get(user_id_str, 0)
+    free_video_accessed = data['free_video_accessed'].get(user_id_str, {})
+    available_lessons = (balance // 3) + sum(1 for subject in SUBJECTS if not free_video_accessed.get(subject, False))  # Bepul videolar + ballar asosida
     
     text = f"📚 {category} fanlarini tanlang:\n\n"
     for subject_key, info in SUBJECTS.items():
         if info['category'] == category:
             text += f"📖 {info['name']} ({lessons_count.get(subject_key, 0)} ta dars)\n\n"
     text += f"💰 Sizda {available_lessons} ta darsga kirish imkoni bor.\n\n"
-    text += "Ko‘proq videolarni qo‘lga kiritish uchun do‘stlaringizni taklif qiling yoki barcha videolarni hoziroq qo‘lga kiritish uchun obunani harid qiling!"
+    text += "Ko‘proq videolarni qo‘lga kiritish uchun do‘stlaringizni taklif qiling yoki barcha videolarni hoziroq qo‘lga kiritish uchun obunani xarid qiling!"
     
     markup_inline = telebot.types.InlineKeyboardMarkup()
-    markup_inline.add(telebot.types.InlineKeyboardButton(text="💳 Obuna harid qilish", url="https://t.me/medstone_usmle_admin"))
+    markup_inline.add(telebot.types.InlineKeyboardButton(text="💳 Obuna xarid qilish", url="https://t.me/medstone_usmle_admin"))
     
     if message_id:
         try:
@@ -189,7 +191,12 @@ def load_users_data():
             data['refer'][user_id] = row.get('refer', False)
             data['phone_number'][user_id] = row.get('phone_number', '')
             data['username'][user_id] = row.get('username', '')
-            data['free_video_accessed'][user_id] = row.get('free_video_accessed', {})
+            # JSON parsing bilan free_video_accessed ni yuklash
+            free_video_str = row.get('free_video_accessed', '{}')
+            try:
+                data['free_video_accessed'][user_id] = json.loads(free_video_str) if free_video_str else {}
+            except json.JSONDecodeError:
+                data['free_video_accessed'][user_id] = {}
         data['total'] = len(data['referred'])
         logging.info(f"Loaded {data['total']} users from Google Sheets")
         return data
@@ -325,13 +332,13 @@ def send_gift_video(user_id, subject, message_id=None):
         free_video_accessed[subject] = True
         data['free_video_accessed'][user_id_str] = free_video_accessed
         save_users_data(data)
-    elif free_video_accessed[subject]:
+    else:
         # Agar bepul video allaqachon olingan bo‘lsa, faqat balans hisoblanadi
         video_count = balance // 3
         if video_count == 0:
-            text = f"⚠️ Ballaringiz yetarli emas!\n\nHozirda {lessons_count} ta dars mavjud.\n\nKo‘proq videolarni qo‘lga kiritish uchun do‘stlaringizni taklif qiling yoki barcha videolarni hoziroq qo‘lga kiritish uchun obunani harid qiling!"
+            text = f"⚠️ Ballaringiz yetarli emas!\n\nHozirda {lessons_count} ta dars mavjud.\n\nKo‘proq videolarni qo‘lga kiritish uchun do‘stlaringizni taklif qiling yoki barcha videolarni hoziroq qo‘lga kiritish uchun obunani xarid qiling!"
             markup = telebot.types.InlineKeyboardMarkup()
-            markup.add(telebot.types.InlineKeyboardButton(text="💳 Obuna harid qilish", url="https://t.me/medstone_usmle_admin"))
+            markup.add(telebot.types.InlineKeyboardButton(text="💳 Obuna xarid qilish", url="https://t.me/medstone_usmle_admin"))
             if message_id:
                 try:
                     bot.edit_message_text(text, user_id, message_id, reply_markup=markup)
@@ -352,12 +359,12 @@ def send_gift_video(user_id, subject, message_id=None):
 
     if sent_videos:
         remaining_lessons = lessons_count - len(sent_videos)
-        text = f"🎥 {', '.join(sent_videos)}-darslar jo‘natildi!\n\n📚 {SUBJECTS[subject]['name']} bo‘yicha {remaining_lessons} ta dars qoldi.\n\nKo‘proq videolarni qo‘lga kiritish uchun do‘stlaringizni taklif qiling yoki barcha videolarni hoziroq qo‘lga kiritish uchun obunani harid qiling!"
+        text = f"🎥 {', '.join(sent_videos)}-darslar jo‘natildi!\n\n📚 {SUBJECTS[subject]['name']} bo‘yicha {remaining_lessons} ta dars qoldi.\n\nKo‘proq videolarni qo‘lga kiritish uchun do‘stlaringizni taklif qiling yoki barcha videolarni hoziroq qo‘lga kiritish uchun obunani xarid qiling!"
     else:
-        text = f"⚠️ {SUBJECTS[subject]['name']} 1-dars topilmadi yoki allaqachon olingan.\n\nJami {lessons_count} ta dars mavjud.\n\nKo‘proq videolarni qo‘lga kiritish uchun do‘stlaringizni taklif qiling yoki barcha videolarni hoziroq qo‘lga kiritish uchun obunani harid qiling!"
+        text = f"⚠️ {SUBJECTS[subject]['name']} 1-dars topilmadi yoki allaqachon olingan.\n\nJami {lessons_count} ta dars mavjud.\n\nKo‘proq videolarni qo‘lga kiritish uchun do‘stlaringizni taklif qiling yoki barcha videolarni hoziroq qo‘lga kiritish uchun obunani xarid qiling!"
     
     markup = telebot.types.InlineKeyboardMarkup()
-    markup.add(telebot.types.InlineKeyboardButton(text="💳 Obuna harid qilish", url="https://t.me/medstone_usmle_admin"))
+    markup.add(telebot.types.InlineKeyboardButton(text="💳 Obuna xarid qilish", url="https://t.me/medstone_usmle_admin"))
     if message_id:
         try:
             bot.edit_message_text(text, user_id, message_id, reply_markup=markup)
@@ -404,7 +411,7 @@ def start(message):
 
         markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
         markup.add(telebot.types.KeyboardButton("✅ Obunani tekshirish"))
-        msg_start = """🎉 Medstone Marafon botga xush kelibsiz!\n\n📚 USMLE step 1 ga tegishli barcha videolarni mutlaqo bepul qo‘lga kiritish imkoniyati!\n\n👇 Lekin avval kanalga qo‘shiling:\n\n@medstone_usmle"""
+        msg_start = """🎉 Medstone Marafon botga xush kelibsiz!\n\n📚 USMLE step 1 ga tegishli barcha fanlar bo‘yicha birinchi darslarni mutlaqo bepul qo‘lga kiritish imkoniyati!\n\n👇 Lekin avval kanalga qo‘shiling:\n\n@medstone_usmle"""
         bot.send_message(message.chat.id, msg_start, reply_markup=markup)
     except Exception as e:
         bot.send_message(message.chat.id, "⚠️ Xatolik!\n\nKeyinroq qayta urinib ko‘ring.")
