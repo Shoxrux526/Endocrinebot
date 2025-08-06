@@ -144,7 +144,7 @@ def subjects_menu(user_id, category, message_id=None):
     # Foydalanuvchi balansini olish
     data = load_users_data()
     balance = data['balance'].get(str(user_id), 0)
-    available_lessons = balance // 5
+    available_lessons = 1 + (balance // 3)  # Birinchi video bepul, keyingilari har 3 ball uchun
     
     text = f"📚 {category} fanlarini tanlang:\n\n"
     for subject_key, info in SUBJECTS.items():
@@ -175,7 +175,7 @@ def load_users_data():
         data = {
             "referred": {}, "referby": {}, "checkin": {}, "DailyQuiz": {},
             "balance": {}, "withd": {}, "id": {}, "refer": {},
-            "phone_number": {}, "username": {}, "total": 0
+            "phone_number": {}, "username": {}, "total": 0, "free_video_accessed": {}
         }
         for row in records:
             user_id = str(row['user_id'])
@@ -189,6 +189,7 @@ def load_users_data():
             data['refer'][user_id] = row.get('refer', False)
             data['phone_number'][user_id] = row.get('phone_number', '')
             data['username'][user_id] = row.get('username', '')
+            data['free_video_accessed'][user_id] = row.get('free_video_accessed', {})
         data['total'] = len(data['referred'])
         logging.info(f"Loaded {data['total']} users from Google Sheets")
         return data
@@ -200,7 +201,7 @@ def load_users_data():
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(2), retry=retry_if_exception_type(Exception))
 def backup_users_data(data):
     try:
-        headers = ['user_id', 'referred', 'referby', 'checkin', 'DailyQuiz', 'balance', 'withd', 'id', 'refer', 'phone_number', 'username']
+        headers = ['user_id', 'referred', 'referby', 'checkin', 'DailyQuiz', 'balance', 'withd', 'id', 'refer', 'phone_number', 'username', 'free_video_accessed']
         all_data = [headers]
         for user_id in data['referred']:
             row = [
@@ -214,7 +215,8 @@ def backup_users_data(data):
                 data['id'].get(user_id, 0),
                 data['refer'].get(user_id, False),
                 data['phone_number'].get(user_id, ''),
-                data['username'].get(user_id, '')
+                data['username'].get(user_id, ''),
+                json.dumps(data['free_video_accessed'].get(user_id, {}))
             ]
             all_data.append(row)
         backup_sheet.update(values=all_data, range_name='A1')
@@ -231,7 +233,7 @@ def save_users_data(data):
             logging.warning("Data is empty, skipping save to avoid data loss")
             return
         backup_users_data(data)
-        headers = ['user_id', 'referred', 'referby', 'checkin', 'DailyQuiz', 'balance', 'withd', 'id', 'refer', 'phone_number', 'username']
+        headers = ['user_id', 'referred', 'referby', 'checkin', 'DailyQuiz', 'balance', 'withd', 'id', 'refer', 'phone_number', 'username', 'free_video_accessed']
         all_data = [headers]
         for user_id in data['referred']:
             row = [
@@ -245,7 +247,8 @@ def save_users_data(data):
                 data['id'].get(user_id, 0),
                 data['refer'].get(user_id, False),
                 data['phone_number'].get(user_id, ''),
-                data['username'].get(user_id, '')
+                data['username'].get(user_id, ''),
+                json.dumps(data['free_video_accessed'].get(user_id, {}))
             ]
             all_data.append(row)
         sheet.update(values=all_data, range_name='A1')
@@ -303,33 +306,30 @@ def save_video_catalog(data):
 def send_gift_video(user_id, subject, message_id=None):
     data = load_users_data()
     catalog = load_video_catalog(subject)
-    balance = data['balance'].get(str(user_id), 0)
-    video_count = balance // 5
+    user_id_str = str(user_id)
+    balance = data['balance'].get(user_id_str, 0)
     lessons_count = len([key for key in catalog if key.startswith(subject.lower())])
     sent_videos = []
+    
+    # Har bir fan bo‘yicha bepul video holatini tekshirish
+    free_video_accessed = data['free_video_accessed'].get(user_id_str, {})
+    if subject not in free_video_accessed:
+        free_video_accessed[subject] = False
 
-    if video_count == 0:
-        text = f"⚠️ Ballaringiz yetarli emas!\n\nHozirda {lessons_count} ta dars mavjud.\n\nKo‘proq videolarni qo‘lga kiritish uchun do‘stlaringizni taklif qiling yoki barcha videolarni hoziroq qo‘lga kiritish uchun obunani harid qiling!"
-        markup = telebot.types.InlineKeyboardMarkup()
-        markup.add(telebot.types.InlineKeyboardButton(text="💳 Obuna harid qilish", url="https://t.me/medstone_usmle_admin"))
-        if message_id:
-            try:
-                bot.edit_message_text(text, user_id, message_id, reply_markup=markup)
-            except:
-                bot.send_message(user_id, text, reply_markup=markup)
-        else:
-            bot.send_message(user_id, text, reply_markup=markup)
-        menu(user_id, message_id)
-        return
-
-    for i in range(1, video_count + 1):
-        video_index = str(i)
-        key = f"{subject.lower()}_{video_index}"
-        if key in catalog:
-            bot.send_video(user_id, catalog[key], supports_streaming=True, protect_content=True)
-            sent_videos.append(video_index)
-        else:
-            text = f"⚠️ {SUBJECTS[subject]['name']} {video_index}-dars topilmadi.\n\nJami {lessons_count} ta dars mavjud.\n\nKo‘proq videolarni qo‘lga kiritish uchun do‘stlaringizni taklif qiling yoki barcha videolarni hoziroq qo‘lga kiritish uchun obunani harid qiling!"
+    # Birinchi videoni bepul yuborish
+    video_index = "1"
+    key = f"{subject.lower()}_{video_index}"
+    if not free_video_accessed[subject] and key in catalog:
+        bot.send_video(user_id, catalog[key], supports_streaming=True, protect_content=True)
+        sent_videos.append(video_index)
+        free_video_accessed[subject] = True
+        data['free_video_accessed'][user_id_str] = free_video_accessed
+        save_users_data(data)
+    elif free_video_accessed[subject]:
+        # Agar bepul video allaqachon olingan bo‘lsa, faqat balans hisoblanadi
+        video_count = balance // 3
+        if video_count == 0:
+            text = f"⚠️ Ballaringiz yetarli emas!\n\nHozirda {lessons_count} ta dars mavjud.\n\nKo‘proq videolarni qo‘lga kiritish uchun do‘stlaringizni taklif qiling yoki barcha videolarni hoziroq qo‘lga kiritish uchun obunani harid qiling!"
             markup = telebot.types.InlineKeyboardMarkup()
             markup.add(telebot.types.InlineKeyboardButton(text="💳 Obuna harid qilish", url="https://t.me/medstone_usmle_admin"))
             if message_id:
@@ -341,19 +341,30 @@ def send_gift_video(user_id, subject, message_id=None):
                 bot.send_message(user_id, text, reply_markup=markup)
             menu(user_id, message_id)
             return
+        for i in range(2, video_count + 2):  # 2-dan boshlab, chunki 1-video bepul
+            video_index = str(i)
+            key = f"{subject.lower()}_{video_index}"
+            if key in catalog:
+                bot.send_video(user_id, catalog[key], supports_streaming=True, protect_content=True)
+                sent_videos.append(video_index)
+            else:
+                break
 
     if sent_videos:
         remaining_lessons = lessons_count - len(sent_videos)
         text = f"🎥 {', '.join(sent_videos)}-darslar jo‘natildi!\n\n📚 {SUBJECTS[subject]['name']} bo‘yicha {remaining_lessons} ta dars qoldi.\n\nKo‘proq videolarni qo‘lga kiritish uchun do‘stlaringizni taklif qiling yoki barcha videolarni hoziroq qo‘lga kiritish uchun obunani harid qiling!"
-        markup = telebot.types.InlineKeyboardMarkup()
-        markup.add(telebot.types.InlineKeyboardButton(text="💳 Obuna harid qilish", url="https://t.me/medstone_usmle_admin"))
-        if message_id:
-            try:
-                bot.edit_message_text(text, user_id, message_id, reply_markup=markup)
-            except:
-                bot.send_message(user_id, text, reply_markup=markup)
-        else:
+    else:
+        text = f"⚠️ {SUBJECTS[subject]['name']} 1-dars topilmadi yoki allaqachon olingan.\n\nJami {lessons_count} ta dars mavjud.\n\nKo‘proq videolarni qo‘lga kiritish uchun do‘stlaringizni taklif qiling yoki barcha videolarni hoziroq qo‘lga kiritish uchun obunani harid qiling!"
+    
+    markup = telebot.types.InlineKeyboardMarkup()
+    markup.add(telebot.types.InlineKeyboardButton(text="💳 Obuna harid qilish", url="https://t.me/medstone_usmle_admin"))
+    if message_id:
+        try:
+            bot.edit_message_text(text, user_id, message_id, reply_markup=markup)
+        except:
             bot.send_message(user_id, text, reply_markup=markup)
+    else:
+        bot.send_message(user_id, text, reply_markup=markup)
     menu(user_id, message_id)
 
 # /start buyrug‘i
@@ -387,14 +398,16 @@ def start(message):
             data['phone_number'][user_id] = ''
         if user_id not in data['username']:
             data['username'][user_id] = message.from_user.username or message.from_user.first_name
+        if user_id not in data['free_video_accessed']:
+            data['free_video_accessed'][user_id] = {}
         save_users_data(data)
 
         markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
         markup.add(telebot.types.KeyboardButton("✅ Obunani tekshirish"))
-        msg_start = """🎉 Marafonga xush kelibsiz!\n\n📚 7 kunlik BEPUL kursda bilim oling!\n\n👇 Kanalga qo‘shiling: @medstone_usmle"""
+        msg_start = """🎉 Medstone Marafon botga xush kelibsiz!\n\n📚 USMLE step 1 ga tegishli barcha videolarni mutlaqo bepul qo‘lga kiritish imkoniyati!\n\n👇 Lekin avval kanalga qo‘shiling:\n\n@medstone_usmle"""
         bot.send_message(message.chat.id, msg_start, reply_markup=markup)
     except Exception as e:
-        bot.send_message(message.chat.id, "⚠️ Xatolik!\n\nKeyinroq urinib ko‘ring.")
+        bot.send_message(message.chat.id, "⚠️ Xatolik!\n\nKeyinroq qayta urinib ko‘ring.")
         bot.send_message(OWNER_ID, f"⚠️ /start xatoligi: {str(e)}")
 
 # Kontakt ma'lumotlari
@@ -412,7 +425,7 @@ def contact(message):
         data['username'][user_id] = username
         save_users_data(data)
         
-        msg = """🎉 Sovg‘angizni oling!\n\n1️⃣ BEPUL bonus video darsni yuklab oling!\n\n2️⃣ 5 ta do‘st taklif qiling – 1 ta dars BEPUL!\n\n3️⃣ 10 ta do‘st – 2 ta dars!\n\n4️⃣ 15 ta do‘st – 3 ta dars!\n\n🔥 Ko‘proq do‘st taklif qiling, butun kursni BEPUL oling!"""
+        msg = """🎉 Endi barcha fanlar bo‘yicha 1-dars mutlaqo bepul!\n\n📚 Fanlar bo‘limidan darslarni yuklab oling!\n\n🔥 3 ta do‘st taklif qiling – 1 ta qo‘shimcha dars BEPUL!\n6 ta do‘st – 2 ta dars!\n9 ta do‘st – 3 ta dars!\n\nKo‘proq do‘st taklif qiling, butun kursni BEPUL oling!"""
         bot.send_message(message.chat.id, msg)
         menu(message.chat.id)
 
@@ -425,10 +438,11 @@ def send_invite_link(user_id, message_id=None):
     if user not in data['referred']:
         data['referred'][user] = 0
         data['username'][user] = bot.get_chat(user_id).username or bot.get_chat(user_id).first_name
+        data['free_video_accessed'][user] = {}
     save_users_data(data)
 
     ref_link = f"https://telegram.me/{bot_name}?start={user_id}"
-    msg = f"🔗 Taklif havolangiz: {ref_link}\n\n📚 Do‘stlaringizni taklif qiling va BEPUL darslar oling!"
+    msg = f"Tibbiyot bo‘yicha barcha fanlarni qamrab olgan Medstone Academy barcha kurslarni mutlaqo bepul tarqatmoqda!\n\n📚 Do‘stlaringizni taklif qiling va BEPUL darslar oling!\n\n🔗 Taklif havolangiz: {ref_link}\n\n"
     if message_id:
         try:
             bot.edit_message_text(msg, user_id, message_id, reply_markup=None)
@@ -538,6 +552,7 @@ def process_broadcast(message, broadcast_type):
                     del data['refer'][user_id]
                     del data['phone_number'][user_id]
                     del data['username'][user_id]
+                    del data['free_video_accessed'][user_id]
             save_users_data(data)
 
         bot.send_message(OWNER_ID, f"🎉 Broadcast yakunlandi!\n\n✅ Muvafaqiyatli: {success_count}\n\n❌ Muvaffaqiyatsiz: {fail_count}\n\n🚫 Bloklangan: {len(blocked_users)}")
@@ -571,6 +586,7 @@ def send_text(message):
                         data['referred'][ref_id] = data['referred'].get(ref_id, 0) + 1
                         bot.send_message(ref_id, f"🎁 Do‘stingiz qo‘shildi!\n\nSizga +{Per_Refer} {TOKEN}!")
                     data['username'][user] = username
+                    data['free_video_accessed'][user] = {}
                     save_users_data(data)
 
                 markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
@@ -640,7 +656,7 @@ def send_text(message):
             menu(user_id, message_id)
 
     except Exception as e:
-        bot.send_message(user_id, "⚠️ Xatolik!\n\nKeyinroq urinib ko‘ring.")
+        bot.send_message(user_id, "⚠️ Xatolik!\n\nKeyinroq qayta urinib ko‘ring.")
         bot.send_message(OWNER_ID, f"⚠️ Text xatoligi: {str(e)}")
 
 # Kanal videolarini qayta ishlash
