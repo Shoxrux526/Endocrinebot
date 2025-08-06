@@ -141,33 +141,55 @@ def subjects_menu(user_id, category, message_id=None):
         if subject_key in lessons_count:
             lessons_count[subject_key] += 1
     
-    # Foydalanuvchi balansini olish
-    data = load_users_data()
-    user_id_str = str(user_id)
-    balance = data['balance'].get(user_id_str, 0)
-    free_video_accessed = data['free_video_accessed'].get(user_id_str, {})
-    available_lessons = (balance // 3) + sum(1 for subject in SUBJECTS if not free_video_accessed.get(subject, False))  # Bepul videolar + ballar asosida
-    
     text = f"📚 {category} fanlarini tanlang:\n\n"
     for subject_key, info in SUBJECTS.items():
         if info['category'] == category:
             text += f"📖 {info['name']} ({lessons_count.get(subject_key, 0)} ta dars)\n\n"
-    text += f"💰 Sizda {available_lessons} ta darsga kirish imkoni bor.\n\n"
-    text += "Ko‘proq videolarni qo‘lga kiritish uchun do‘stlaringizni taklif qiling yoki barcha videolarni hoziroq qo‘lga kiritish uchun obunani xarid qiling!"
-    
-    markup_inline = telebot.types.InlineKeyboardMarkup()
-    markup_inline.add(telebot.types.InlineKeyboardButton(text="💳 Obuna xarid qilish", url="https://t.me/medstone_usmle_admin"))
     
     if message_id:
         try:
-            bot.edit_message_text(text, user_id, message_id, reply_markup=markup_inline)
-            bot.edit_message_reply_markup(user_id, message_id, reply_markup=markup)
+            bot.edit_message_text(text, user_id, message_id, reply_markup=markup)
         except:
-            bot.send_message(user_id, text, reply_markup=markup_inline)
-            bot.send_message(user_id, "Menyu:", reply_markup=markup)
+            bot.send_message(user_id, text, reply_markup=markup)
     else:
-        bot.send_message(user_id, text, reply_markup=markup_inline)
-        bot.send_message(user_id, "Menyu:", reply_markup=markup)
+        bot.send_message(user_id, text, reply_markup=markup)
+
+# Fan videolarini inline tugmalar sifatida ko‘rsatish
+def show_subject_videos(user_id, subject, message_id=None):
+    data = load_users_data()
+    catalog = load_video_catalog(subject)
+    user_id_str = str(user_id)
+    balance = data['balance'].get(user_id_str, 0)
+    free_video_accessed = data['free_video_accessed'].get(user_id_str, {})
+    
+    lessons_count = len([key for key in catalog if key.startswith(subject.lower())])
+    available_videos = 0 if free_video_accessed.get(subject, False) else 1  # Bepul video hali olinmagan bo‘lsa
+    available_videos += balance // 3  # Har 3 ball uchun 1 video
+    
+    text = f"📚 {SUBJECTS[subject]['name']} bo‘yicha darslar ({lessons_count} ta):\n\n"
+    text += f"💰 Sizda {available_videos} ta darsga kirish imkoni bor.\n\n"
+    text += "Ko‘proq videolarni qo‘lga kiritish uchun do‘stlaringizni taklif qiling yoki barcha videolarni hoziroq qo‘lga kiritish uchun obunani xarid qiling!"
+    
+    markup = telebot.types.InlineKeyboardMarkup(row_width=3)
+    for i in range(1, lessons_count + 1):
+        video_index = str(i)
+        key = f"{subject.lower()}_{video_index}"
+        if key in catalog:
+            if i == 1 and not free_video_accessed.get(subject, False):
+                markup.add(telebot.types.InlineKeyboardButton(f"📽️ Dars {i}", callback_data=f"video_{subject}_{i}"))
+            elif i <= available_videos + 1:  # +1 chunki bepul video hisobga olinadi
+                markup.add(telebot.types.InlineKeyboardButton(f"📽️ Dars {i}", callback_data=f"video_{subject}_{i}"))
+            else:
+                markup.add(telebot.types.InlineKeyboardButton(f"🔒 Dars {i}", callback_data=f"locked_{subject}_{i}"))
+    markup.add(telebot.types.InlineKeyboardButton("⬅️ Ortga", callback_data=f"back_to_subjects_{SUBJECTS[subject]['category']}"))
+    
+    if message_id:
+        try:
+            bot.edit_message_text(text, user_id, message_id, reply_markup=markup)
+        except:
+            bot.send_message(user_id, text, reply_markup=markup)
+    else:
+        bot.send_message(user_id, text, reply_markup=markup)
 
 # Google Sheets-dan foydalanuvchilar ma'lumotlarini yuklash
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(2), retry=retry_if_exception_type(Exception))
@@ -191,10 +213,8 @@ def load_users_data():
             data['refer'][user_id] = row.get('refer', False)
             data['phone_number'][user_id] = row.get('phone_number', '')
             data['username'][user_id] = row.get('username', '')
-            # JSON parsing bilan free_video_accessed ni yuklash
-            free_video_str = row.get('free_video_accessed', '{}')
             try:
-                data['free_video_accessed'][user_id] = json.loads(free_video_str) if free_video_str else {}
+                data['free_video_accessed'][user_id] = json.loads(row.get('free_video_accessed', '{}')) if row.get('free_video_accessed') else {}
             except json.JSONDecodeError:
                 data['free_video_accessed'][user_id] = {}
         data['total'] = len(data['referred'])
@@ -309,62 +329,76 @@ def save_video_catalog(data):
         logging.error(f"Error saving video catalog: {e}")
         return False
 
+# Inline tugma callbacklarini qayta ishlash
+@bot.callback_query_handler(func=lambda call: True)
+def handle_video_callback(call):
+    user_id = call.from_user.id
+    data = call.data
+    message_id = call.message.message_id
+
+    if data.startswith("video_"):
+        _, subject, video_index = data.split("_")
+        send_gift_video(user_id, subject, video_index, message_id)
+    elif data.startswith("locked_"):
+        _, subject, video_index = data.split("_")
+        text = f"🔒 {SUBJECTS[subject]['name']} {video_index}-dars uchun ballaringiz yetarli emas!\n\nDo‘stlaringizni taklif qilib hisobingizni to‘ldiring yoki hoziroq obunani xarid qiling!"
+        markup = telebot.types.InlineKeyboardMarkup()
+        markup.add(telebot.types.InlineKeyboardButton("💳 Obuna xarid qilish", url="https://t.me/medstone_usmle_admin"))
+        try:
+            bot.edit_message_text(text, user_id, message_id, reply_markup=markup)
+        except:
+            bot.send_message(user_id, text, reply_markup=markup)
+    elif data.startswith("back_to_subjects_"):
+        _, category = data.split("_", 1)
+        subjects_menu(user_id, category, message_id)
+
 # Sovg‘a videolarini yuborish
-def send_gift_video(user_id, subject, message_id=None):
+def send_gift_video(user_id, subject, video_index, message_id=None):
     data = load_users_data()
     catalog = load_video_catalog(subject)
     user_id_str = str(user_id)
     balance = data['balance'].get(user_id_str, 0)
-    lessons_count = len([key for key in catalog if key.startswith(subject.lower())])
-    sent_videos = []
-    
-    # Har bir fan bo‘yicha bepul video holatini tekshirish
     free_video_accessed = data['free_video_accessed'].get(user_id_str, {})
-    if subject not in free_video_accessed:
-        free_video_accessed[subject] = False
-
-    # Birinchi videoni bepul yuborish
-    video_index = "1"
+    
     key = f"{subject.lower()}_{video_index}"
-    if not free_video_accessed[subject] and key in catalog:
+    if key not in catalog:
+        text = f"⚠️ {SUBJECTS[subject]['name']} {video_index}-dars topilmadi!"
+        if message_id:
+            try:
+                bot.edit_message_text(text, user_id, message_id)
+            except:
+                bot.send_message(user_id, text)
+        else:
+            bot.send_message(user_id, text)
+        show_subject_videos(user_id, subject, message_id)
+        return
+
+    # Bepul video yoki balans tekshiruvi
+    if video_index == "1" and not free_video_accessed.get(subject, False):
         bot.send_video(user_id, catalog[key], supports_streaming=True, protect_content=True)
-        sent_videos.append(video_index)
         free_video_accessed[subject] = True
         data['free_video_accessed'][user_id_str] = free_video_accessed
         save_users_data(data)
+        text = f"🎥 {SUBJECTS[subject]['name']} {video_index}-dars jo‘natildi!\n\nKo‘proq videolarni qo‘lga kiritish uchun do‘stlaringizni taklif qiling yoki barcha videolarni hoziroq qo‘lga kiritish uchun obunani xarid qiling!"
+    elif int(video_index) <= (balance // 3) + (1 if not free_video_accessed.get(subject, False) else 0) + 1:
+        bot.send_video(user_id, catalog[key], supports_streaming=True, protect_content=True)
+        text = f"🎥 {SUBJECTS[subject]['name']} {video_index}-dars jo‘natildi!\n\nKo‘proq videolarni qo‘lga kiritish uchun do‘stlaringizni taklif qiling yoki barcha videolarni hoziroq qo‘lga kiritish uchun obunani xarid qiling!"
     else:
-        # Agar bepul video allaqachon olingan bo‘lsa, faqat balans hisoblanadi
-        video_count = balance // 3
-        if video_count == 0:
-            text = f"⚠️ Ballaringiz yetarli emas!\n\nHozirda {lessons_count} ta dars mavjud.\n\nKo‘proq videolarni qo‘lga kiritish uchun do‘stlaringizni taklif qiling yoki barcha videolarni hoziroq qo‘lga kiritish uchun obunani xarid qiling!"
-            markup = telebot.types.InlineKeyboardMarkup()
-            markup.add(telebot.types.InlineKeyboardButton(text="💳 Obuna xarid qilish", url="https://t.me/medstone_usmle_admin"))
-            if message_id:
-                try:
-                    bot.edit_message_text(text, user_id, message_id, reply_markup=markup)
-                except:
-                    bot.send_message(user_id, text, reply_markup=markup)
-            else:
+        text = f"🔒 {SUBJECTS[subject]['name']} {video_index}-dars uchun ballaringiz yetarli emas!\n\nDo‘stlaringizni taklif qilib hisobingizni to‘ldiring yoki hoziroq obunani xarid qiling!"
+        markup = telebot.types.InlineKeyboardMarkup()
+        markup.add(telebot.types.InlineKeyboardButton("💳 Obuna xarid qilish", url="https://t.me/medstone_usmle_admin"))
+        if message_id:
+            try:
+                bot.edit_message_text(text, user_id, message_id, reply_markup=markup)
+            except:
                 bot.send_message(user_id, text, reply_markup=markup)
-            menu(user_id, message_id)
-            return
-        for i in range(2, video_count + 2):  # 2-dan boshlab, chunki 1-video bepul
-            video_index = str(i)
-            key = f"{subject.lower()}_{video_index}"
-            if key in catalog:
-                bot.send_video(user_id, catalog[key], supports_streaming=True, protect_content=True)
-                sent_videos.append(video_index)
-            else:
-                break
+        else:
+            bot.send_message(user_id, text, reply_markup=markup)
+        show_subject_videos(user_id, subject, message_id)
+        return
 
-    if sent_videos:
-        remaining_lessons = lessons_count - len(sent_videos)
-        text = f"🎥 {', '.join(sent_videos)}-darslar jo‘natildi!\n\n📚 {SUBJECTS[subject]['name']} bo‘yicha {remaining_lessons} ta dars qoldi.\n\nKo‘proq videolarni qo‘lga kiritish uchun do‘stlaringizni taklif qiling yoki barcha videolarni hoziroq qo‘lga kiritish uchun obunani xarid qiling!"
-    else:
-        text = f"⚠️ {SUBJECTS[subject]['name']} 1-dars topilmadi yoki allaqachon olingan.\n\nJami {lessons_count} ta dars mavjud.\n\nKo‘proq videolarni qo‘lga kiritish uchun do‘stlaringizni taklif qiling yoki barcha videolarni hoziroq qo‘lga kiritish uchun obunani xarid qiling!"
-    
     markup = telebot.types.InlineKeyboardMarkup()
-    markup.add(telebot.types.InlineKeyboardButton(text="💳 Obuna xarid qilish", url="https://t.me/medstone_usmle_admin"))
+    markup.add(telebot.types.InlineKeyboardButton("💳 Obuna xarid qilish", url="https://t.me/medstone_usmle_admin"))
     if message_id:
         try:
             bot.edit_message_text(text, user_id, message_id, reply_markup=markup)
@@ -372,7 +406,7 @@ def send_gift_video(user_id, subject, message_id=None):
             bot.send_message(user_id, text, reply_markup=markup)
     else:
         bot.send_message(user_id, text, reply_markup=markup)
-    menu(user_id, message_id)
+    show_subject_videos(user_id, subject, message_id)
 
 # /start buyrug‘i
 @bot.message_handler(commands=['start'])
@@ -644,7 +678,7 @@ def send_text(message):
             subject_name = text.replace("📖 ", "")
             subject_key = next((key for key, info in SUBJECTS.items() if info['name'] == subject_name), None)
             if subject_key:
-                send_gift_video(user_id, subject_key, message_id)
+                show_subject_videos(user_id, subject_key, message_id)
             else:
                 try:
                     bot.edit_message_text("⚠️ Noto‘g‘ri fan tanlandi!", user_id, message_id)
