@@ -91,7 +91,7 @@ def check(id):
 def menu(user_id, message_id=None):
     markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
     markup.row("👤 Hisobim", "🔗 Taklif linki")
-    markup.row("🎁 Sovg‘alar", "📚 Fanlar")
+    markup.row("📚 Fanlar")
     if user_id == OWNER_ID:
         markup.row("📊 Statistika", "📢 Broadcast")
     
@@ -107,7 +107,7 @@ def menu(user_id, message_id=None):
 # Fanlar menyusi
 def subjects_menu(user_id, message_id=None):
     markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-    subject_buttons = [f"🎓 {info['name']}" for info in SUBJECTS.values()]
+    subject_buttons = [f"📖 {info['name']}" for info in SUBJECTS.values()]
     for i in range(0, len(subject_buttons), 2):
         markup.row(*subject_buttons[i:i+2])
     markup.row("⬅️ Ortga")
@@ -125,10 +125,10 @@ def subjects_menu(user_id, message_id=None):
     balance = data['balance'].get(str(user_id), 0)
     available_lessons = balance // 5
     
-    text = f"📚 Fan tanlang:\n\n"
+    text = "📚 Fan tanlang:\n\n"
     for subject_key, info in SUBJECTS.items():
-        text += f"🎓 {info['name']}: {lessons_count.get(subject_key, 0)} ta dars\n"
-    text += f"\n💰 Sizda {available_lessons} ta darsga kirish imkoni bor."
+        text += f"📖 {info['name']} ({lessons_count.get(subject_key, 0)} ta dars)\n{info['desc']}\n\n"
+    text += f"💰 Sizda {available_lessons} ta darsga kirish imkoni bor."
     
     if message_id:
         try:
@@ -273,14 +273,16 @@ def send_gift_video(user_id, subject, message_id=None):
     sent_videos = []
 
     if video_count == 0:
-        text = f"⚠️ Ballaringiz yetarli emas! Hozirda {lessons_count} ta dars mavjud.\nDo‘stlaringizni taklif qilib ball to‘plang yoki to‘lov qiling!"
+        text = f"⚠️ Ballaringiz yetarli emas!\n\nHozirda {lessons_count} ta dars mavjud.\n\nDo‘stlaringizni taklif qilib ball to‘plang yoki obunani harid qiling!"
+        markup = telebot.types.InlineKeyboardMarkup()
+        markup.add(telebot.types.InlineKeyboardButton(text="💳 Obuna harid qilish", url="https://t.me/medstone_usmle_admin"))
         if message_id:
             try:
-                bot.edit_message_text(text, user_id, message_id, reply_markup=None)
+                bot.edit_message_text(text, user_id, message_id, reply_markup=markup)
             except:
-                bot.send_message(user_id, text)
+                bot.send_message(user_id, text, reply_markup=markup)
         else:
-            bot.send_message(user_id, text)
+            bot.send_message(user_id, text, reply_markup=markup)
         menu(user_id, message_id)
         return
 
@@ -291,7 +293,7 @@ def send_gift_video(user_id, subject, message_id=None):
             bot.send_video(user_id, catalog[key], supports_streaming=True)
             sent_videos.append(video_index)
         else:
-            text = f"⚠️ {SUBJECTS[subject]['name']} {video_index}-dars topilmadi. Jami {lessons_count} ta dars mavjud. Admin bilan bog‘laning!"
+            text = f"⚠️ {SUBJECTS[subject]['name']} {video_index}-dars topilmadi.\n\nJami {lessons_count} ta dars mavjud.\n\nAdmin bilan bog‘laning!"
             if message_id:
                 try:
                     bot.edit_message_text(text, user_id, message_id, reply_markup=None)
@@ -304,14 +306,16 @@ def send_gift_video(user_id, subject, message_id=None):
 
     if sent_videos:
         remaining_lessons = lessons_count - len(sent_videos)
-        text = f"🎥 {', '.join(sent_videos)}-darslar jo‘natildi!\n📚 {SUBJECTS[subject]['name']} bo‘yicha {remaining_lessons} ta dars qoldi."
+        text = f"🎥 {', '.join(sent_videos)}-darslar jo‘natildi!\n\n📚 {SUBJECTS[subject]['name']} bo‘yicha {remaining_lessons} ta dars qoldi.\n\nBarcha videolarni hoziroq qo‘lga kiritish uchun obunani harid qiling!"
+        markup = telebot.types.InlineKeyboardMarkup()
+        markup.add(telebot.types.InlineKeyboardButton(text="💳 Obuna harid qilish", url="https://t.me/medstone_usmle_admin"))
         if message_id:
             try:
-                bot.edit_message_text(text, user_id, message_id, reply_markup=None)
+                bot.edit_message_text(text, user_id, message_id, reply_markup=markup)
             except:
-                bot.send_message(user_id, text)
+                bot.send_message(user_id, text, reply_markup=markup)
         else:
-            bot.send_message(user_id, text)
+            bot.send_message(user_id, text, reply_markup=markup)
     menu(user_id, message_id)
 
 # /start buyrug‘i
@@ -345,12 +349,10 @@ def start(message):
 
         markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
         markup.add(telebot.types.KeyboardButton("✅ Obunani tekshirish"))
-        msg_start = """🎉 Marafonga xush kelibsiz!  
-📚 7 kunlik BEPUL kursda bilim oling!  
-👇 Kanalga qo‘shiling: @medstone_usmle"""
+        msg_start = """🎉 Marafonga xush kelibsiz!\n\n📚 7 kunlik BEPUL kursda bilim oling!\n\n👇 Kanalga qo‘shiling: @medstone_usmle"""
         bot.send_message(message.chat.id, msg_start, reply_markup=markup)
     except Exception as e:
-        bot.send_message(message.chat.id, "⚠️ Xatolik! Keyinroq urinib ko‘ring.")
+        bot.send_message(message.chat.id, "⚠️ Xatolik!\n\nKeyinroq urinib ko‘ring.")
         bot.send_message(OWNER_ID, f"⚠️ /start xatoligi: {str(e)}")
 
 # Kontakt ma'lumotlari
@@ -359,14 +361,9 @@ def contact(message):
     if message.contact:
         contact = message.contact.phone_number
         username = message.from_user.username or message.from_user.first_name
-        bot.send_message(ADMIN_GROUP_USERNAME, f"👤 @{username}\n📞 Raqam: {contact}")
+        bot.send_message(ADMIN_GROUP_USERNAME, f"👤 @{username}\n\n📞 Raqam: {contact}")
         
-        msg = """🎉 Sovg‘angizni oling!  
-1️⃣ BEPUL bonus video darsni yuklab oling!  
-2️⃣ 5 ta do‘st taklif qiling – 1 ta dars BEPUL!  
-3️⃣ 10 ta do‘st – 2 ta dars!  
-4️⃣ 15 ta do‘st – 3 ta dars!  
-🔥 Ko‘proq do‘st taklif qiling, butun kursni BEPUL oling!"""
+        msg = """🎉 Sovg‘angizni oling!\n\n1️⃣ BEPUL bonus video darsni yuklab oling!\n\n2️⃣ 5 ta do‘st taklif qiling – 1 ta dars BEPUL!\n\n3️⃣ 10 ta do‘st – 2 ta dars!\n\n4️⃣ 15 ta do‘st – 3 ta dars!\n\n🔥 Ko‘proq do‘st taklif qiling, butun kursni BEPUL oling!"""
         bot.send_message(message.chat.id, msg)
         menu(message.chat.id)
 
@@ -381,7 +378,7 @@ def send_invite_link(user_id, message_id=None):
     save_users_data(data)
 
     ref_link = f"https://telegram.me/{bot_name}?start={user_id}"
-    msg = f"🔗 Taklif havolangiz: {ref_link}\n📚 Do‘stlaringizni taklif qiling va BEPUL darslar oling!"
+    msg = f"🔗 Taklif havolangiz: {ref_link}\n\n📚 Do‘stlaringizni taklif qiling va BEPUL darslar oling!"
     if message_id:
         try:
             bot.edit_message_text(msg, user_id, message_id, reply_markup=None)
@@ -429,7 +426,7 @@ def process_broadcast_type(message):
             bot.register_next_step_handler(msg, lambda m: process_broadcast(m, 'video'))
         
     except Exception as e:
-        bot.send_message(message.chat.id, f"⚠️ Xatolik: {str(e)}")
+        bot.send_message(message.chat.id, f"⚠️ Xatolik!\n\n{str(e)}")
         bot.send_message(OWNER_ID, f"⚠️ Broadcast xatoligi: {str(e)}")
 
 def process_broadcast(message, broadcast_type):
@@ -447,7 +444,7 @@ def process_broadcast(message, broadcast_type):
                 message.text = message.text.split('/filter')[0].strip()
                 user_ids = [uid for uid in user_ids if data['balance'].get(uid, 0) >= min_balance]
             except:
-                bot.reply_to(message, "⚠️ Filtr xato! /filter <ball> formatidan foydalaning.")
+                bot.reply_to(message, "⚠️ Filtr xato!\n\n/filter <ball> formatidan foydalaning.")
                 return
 
         if not user_ids:
@@ -458,7 +455,7 @@ def process_broadcast(message, broadcast_type):
         fail_count = 0
         blocked_users = []
 
-        bot.reply_to(message, f"📢 Broadcast boshlandi. Jami {len(user_ids)} foydalanuvchi.")
+        bot.reply_to(message, f"📢 Broadcast boshlandi.\n\nJami {len(user_ids)} foydalanuvchi.")
 
         for user_id in user_ids:
             try:
@@ -491,12 +488,12 @@ def process_broadcast(message, broadcast_type):
                     del data['refer'][user_id]
             save_users_data(data)
 
-        bot.send_message(OWNER_ID, f"🎉 Broadcast yakunlandi!\n✅ Muvafaqiyatli: {success_count}\n❌ Muvaffaqiyatsiz: {fail_count}\n🚫 Bloklangan: {len(blocked_users)}")
+        bot.send_message(OWNER_ID, f"🎉 Broadcast yakunlandi!\n\n✅ Muvafaqiyatli: {success_count}\n\n❌ Muvaffaqiyatsiz: {fail_count}\n\n🚫 Bloklangan: {len(blocked_users)}")
         menu(OWNER_ID)
 
     except Exception as e:
-        bot.reply_to(message, f"⚠️ Xatolik: {str(e)}")
-        bot.send_message(OWNER_ID, f"⚠️ Broadcast xatoligi: {str(e)}")
+        bot.reply_to(message, f"⚠️ Xatolik!\n\n{str(e)}")
+        bot.send_message(OWNER_ID, f"⚖ Broadcast xatoligi: {str(e)}")
 
 # Matnli xabarlar
 @bot.message_handler(content_types=['text'])
@@ -520,38 +517,35 @@ def send_text(message):
                         ref_id = data['referby'][user]
                         data['balance'][ref_id] = data['balance'].get(ref_id, 0) + Per_Refer
                         data['referred'][ref_id] = data['referred'].get(ref_id, 0) + 1
-                        bot.send_message(ref_id, f"🎁 Do‘stingiz qo‘shildi! Sizga +{Per_Refer} {TOKEN}!")
+                        bot.send_message(ref_id, f"🎁 Do‘stingiz qo‘shildi!\n\nSizga +{Per_Refer} {TOKEN}!")
                     save_users_data(data)
 
                 markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
                 markup.add(telebot.types.KeyboardButton("📞 Raqamni ulashish", request_contact=True))
                 try:
-                    bot.edit_message_text(f"👋 Salom, @{username}! Telefon raqamingizni ulashing:", user_id, message_id, reply_markup=markup)
+                    bot.edit_message_text(f"👋 Salom, @{username}!\n\nTelefon raqamingizni ulashing:", user_id, message_id, reply_markup=markup)
                 except:
-                    bot.send_message(user_id, f"👋 Salom, @{username}! Telefon raqamingizni ulashing:", reply_markup=markup)
+                    bot.send_message(user_id, f"👋 Salom, @{username}!\n\nTelefon raqamingizni ulashing:", reply_markup=markup)
             else:
                 markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
                 markup.add(telebot.types.KeyboardButton("✅ Obunani tekshirish"))
                 try:
-                    bot.edit_message_text("🤖 Kanalga qo‘shiling: @medstone_usmle", user_id, message_id, reply_markup=markup)
+                    bot.edit_message_text("🤖 Kanalga qo‘shiling:\n\n@medstone_usmle", user_id, message_id, reply_markup=markup)
                 except:
-                    bot.send_message(user_id, "🤖 Kanalga qo‘shiling: @medstone_usmle", reply_markup=markup)
+                    bot.send_message(user_id, "🤖 Kanalga qo‘shiling:\n\n@medstone_usmle", reply_markup=markup)
 
         elif text == "👤 Hisobim":
             data = load_users_data()
             username = message.from_user.username or message.from_user.first_name
             balance = data['balance'].get(str(user_id), 0)
             try:
-                bot.edit_message_text(f"👤 @{username}\n💰 Balans: {balance} {TOKEN}", user_id, message_id)
+                bot.edit_message_text(f"👤 @{username}\n\n💰 Balans: {balance} {TOKEN}", user_id, message_id)
             except:
-                bot.send_message(user_id, f"👤 @{username}\n💰 Balans: {balance} {TOKEN}")
+                bot.send_message(user_id, f"👤 @{username}\n\n💰 Balans: {balance} {TOKEN}")
             menu(user_id, message_id)
 
         elif text == "🔗 Taklif linki":
             send_invite_link(user_id, message_id)
-
-        elif text == "🎁 Sovg‘alar":
-            subjects_menu(user_id, message_id)
 
         elif text == "📚 Fanlar":
             subjects_menu(user_id, message_id)
@@ -559,16 +553,16 @@ def send_text(message):
         elif text == "📊 Statistika" and user_id == OWNER_ID:
             data = load_users_data()
             try:
-                bot.edit_message_text(f"📈 Jami foydalanuvchilar: {data['total']}", user_id, message_id)
+                bot.edit_message_text(f"📈 Jami foydalanuvchilar:\n\n{data['total']}", user_id, message_id)
             except:
-                bot.send_message(user_id, f"📈 Jami foydalanuvchilar: {data['total']}")
+                bot.send_message(user_id, f"📈 Jami foydalanuvchilar:\n\n{data['total']}")
             menu(user_id, message_id)
 
         elif text == "📢 Broadcast" and user_id == OWNER_ID:
             handle_broadcast(message)
 
-        elif text.startswith("🎓 "):
-            subject_name = text.replace("🎓 ", "")
+        elif text.startswith("📖 "):
+            subject_name = text.replace("📖 ", "")
             subject_key = next((key for key, info in SUBJECTS.items() if info['name'] == subject_name), None)
             if subject_key:
                 send_gift_video(user_id, subject_key, message_id)
@@ -590,7 +584,7 @@ def send_text(message):
             menu(user_id, message_id)
 
     except Exception as e:
-        bot.send_message(user_id, "⚠️ Xatolik! Keyinroq urinib ko‘ring.")
+        bot.send_message(user_id, "⚠️ Xatolik!\n\nKeyinroq urinib ko‘ring.")
         bot.send_message(OWNER_ID, f"⚠️ Text xatoligi: {str(e)}")
 
 # Kanal videolarini qayta ishlash
@@ -616,7 +610,7 @@ def handle_channel_video_post(message):
                 index = index_part if index_part.isdigit() else '1'
                 break
         if not subject_key or not index:
-            bot.send_message(OWNER_ID, f"⚠️ Captionda noto‘g‘ri teglar: {caption}")
+            bot.send_message(OWNER_ID, f"⚠️ Captionda noto‘g‘ri teglar:\n\n{caption}")
             return
 
         catalog = load_video_catalog()
@@ -630,9 +624,8 @@ def handle_channel_video_post(message):
             bot.send_message(OWNER_ID, f"✅ {subject_key} {index}-dars saqlandi.")
         else:
             bot.send_message(OWNER_ID, "❌ Saqlashda xatolik!")
-
     except Exception as e:
-        bot.send_message(OWNER_ID, f"❌ Video yozishda xatolik: {e}")
+        bot.send_message(OWNER_ID, f"❌ Video yozishda xatolik:\n\n{e}")
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 10000))
