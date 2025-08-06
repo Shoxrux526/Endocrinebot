@@ -445,7 +445,7 @@ def start(message):
 
         markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
         markup.add(telebot.types.KeyboardButton("✅ Obunani tekshirish"))
-        msg_start = """🎉 Medstone Marafon botga xush kelibsiz!\n\n📚 USMLE step 1 ga tegishli barcha fanlar bo‘yicha birinchi darslarni mutlaqo bepul qo‘lga kiritish imkoniyati!\n\n👇 Lekin avval kanalga qo‘shiling:\n\n@medstone_usmle"""
+        msg_start = """🎉 Medstone Marafon botga xush kelibsiz!\n\n📚 Endi USMLE step 1 ga tegishli barcha fanlar bo‘yicha kurslarni mutlaqo bepul qo‘lga kiritish imkoniyatingiz bor!\n\n👇 Lekin avval kanalga qo‘shiling:\n\n@medstone_usmle"""
         bot.send_message(message.chat.id, msg_start, reply_markup=markup)
     except Exception as e:
         bot.send_message(message.chat.id, "⚠️ Xatolik!\n\nKeyinroq qayta urinib ko‘ring.")
@@ -466,7 +466,7 @@ def contact(message):
         data['username'][user_id] = username
         save_users_data(data)
         
-        msg = """🎉 Endi barcha fanlar bo‘yicha 1-dars mutlaqo bepul!\n\n📚 Fanlar bo‘limidan darslarni yuklab oling!\n\n🔥 3 ta do‘st taklif qiling – 1 ta qo‘shimcha dars BEPUL!\n6 ta do‘st – 2 ta dars!\n9 ta do‘st – 3 ta dars!\n\nKo‘proq do‘st taklif qiling, butun kursni BEPUL oling!"""
+        msg = """🎉 Endi barcha fanlar mutlaqo bepul!\n\n📚 Fanlar bo‘limidan darslarni yuklab oling!\n\n🔥Barcha fanlardagi dastlabki videolar sizga sovgʻa\n\n🎁 Keyin esa siz taklif qilgan har 3 ta do‘stingiz sizga – 1 ta qo‘shimcha darsni BEPULga taqdim etadi!\n\n\n\nKo‘proq do‘stlaringizni taklif qiling va butun kursni BEPUL oling!"""
         bot.send_message(message.chat.id, msg)
         menu(message.chat.id)
 
