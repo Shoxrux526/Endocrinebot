@@ -145,7 +145,8 @@ def load_users_data():
         records = sheet.get_all_records()
         data = {
             "referred": {}, "referby": {}, "checkin": {}, "DailyQuiz": {},
-            "balance": {}, "withd": {}, "id": {}, "refer": {}, "total": 0
+            "balance": {}, "withd": {}, "id": {}, "refer": {},
+            "phone_number": {}, "username": {}, "total": 0
         }
         for row in records:
             user_id = str(row['user_id'])
@@ -157,6 +158,8 @@ def load_users_data():
             data['withd'][user_id] = row.get('withd', 0)
             data['id'][user_id] = row.get('id', 0)
             data['refer'][user_id] = row.get('refer', False)
+            data['phone_number'][user_id] = row.get('phone_number', '')
+            data['username'][user_id] = row.get('username', '')
         data['total'] = len(data['referred'])
         logging.info(f"Loaded {data['total']} users from Google Sheets")
         return data
@@ -168,7 +171,7 @@ def load_users_data():
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(2), retry=retry_if_exception_type(Exception))
 def backup_users_data(data):
     try:
-        headers = ['user_id', 'referred', 'referby', 'checkin', 'DailyQuiz', 'balance', 'withd', 'id', 'refer']
+        headers = ['user_id', 'referred', 'referby', 'checkin', 'DailyQuiz', 'balance', 'withd', 'id', 'refer', 'phone_number', 'username']
         all_data = [headers]
         for user_id in data['referred']:
             row = [
@@ -180,7 +183,9 @@ def backup_users_data(data):
                 data['balance'].get(user_id, 0),
                 data['withd'].get(user_id, 0),
                 data['id'].get(user_id, 0),
-                data['refer'].get(user_id, False)
+                data['refer'].get(user_id, False),
+                data['phone_number'].get(user_id, ''),
+                data['username'].get(user_id, '')
             ]
             all_data.append(row)
         backup_sheet.update(values=all_data, range_name='A1')
@@ -197,7 +202,7 @@ def save_users_data(data):
             logging.warning("Data is empty, skipping save to avoid data loss")
             return
         backup_users_data(data)
-        headers = ['user_id', 'referred', 'referby', 'checkin', 'DailyQuiz', 'balance', 'withd', 'id', 'refer']
+        headers = ['user_id', 'referred', 'referby', 'checkin', 'DailyQuiz', 'balance', 'withd', 'id', 'refer', 'phone_number', 'username']
         all_data = [headers]
         for user_id in data['referred']:
             row = [
@@ -209,7 +214,9 @@ def save_users_data(data):
                 data['balance'].get(user_id, 0),
                 data['withd'].get(user_id, 0),
                 data['id'].get(user_id, 0),
-                data['refer'].get(user_id, False)
+                data['refer'].get(user_id, False),
+                data['phone_number'].get(user_id, ''),
+                data['username'].get(user_id, '')
             ]
             all_data.append(row)
         sheet.update(values=all_data, range_name='A1')
@@ -221,7 +228,7 @@ def save_users_data(data):
 # Videolarni yuborish
 def send_videos(user_id, video_file_ids, message_id=None):
     for video_file_id in video_file_ids:
-        bot.send_video(user_id, video_file_id, supports_streaming=True)
+        bot.send_video(user_id, video_file_id, supports_streaming=True, protect_content=True)
     if message_id:
         try:
             bot.edit_message_reply_markup(user_id, message_id, reply_markup=None)
@@ -290,7 +297,7 @@ def send_gift_video(user_id, subject, message_id=None):
         video_index = str(i)
         key = f"{subject.lower()}_{video_index}"
         if key in catalog:
-            bot.send_video(user_id, catalog[key], supports_streaming=True)
+            bot.send_video(user_id, catalog[key], supports_streaming=True, protect_content=True)
             sent_videos.append(video_index)
         else:
             text = f"⚠️ {SUBJECTS[subject]['name']} {video_index}-dars topilmadi.\n\nJami {lessons_count} ta dars mavjud.\n\nAdmin bilan bog‘laning!"
@@ -345,6 +352,10 @@ def start(message):
             data['withd'][user_id] = 0
         if user_id not in data['id']:
             data['id'][user_id] = len(data['referred'])
+        if user_id not in data['phone_number']:
+            data['phone_number'][user_id] = ''
+        if user_id not in data['username']:
+            data['username'][user_id] = message.from_user.username or message.from_user.first_name
         save_users_data(data)
 
         markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -359,9 +370,16 @@ def start(message):
 @bot.message_handler(content_types=['contact'])
 def contact(message):
     if message.contact:
+        user_id = str(message.chat.id)
         contact = message.contact.phone_number
         username = message.from_user.username or message.from_user.first_name
         bot.send_message(ADMIN_GROUP_USERNAME, f"👤 @{username}\n\n📞 Raqam: {contact}")
+        
+        # Google Sheets'ga telefon raqami va username'ni yozish
+        data = load_users_data()
+        data['phone_number'][user_id] = contact
+        data['username'][user_id] = username
+        save_users_data(data)
         
         msg = """🎉 Sovg‘angizni oling!\n\n1️⃣ BEPUL bonus video darsni yuklab oling!\n\n2️⃣ 5 ta do‘st taklif qiling – 1 ta dars BEPUL!\n\n3️⃣ 10 ta do‘st – 2 ta dars!\n\n4️⃣ 15 ta do‘st – 3 ta dars!\n\n🔥 Ko‘proq do‘st taklif qiling, butun kursni BEPUL oling!"""
         bot.send_message(message.chat.id, msg)
@@ -375,6 +393,7 @@ def send_invite_link(user_id, message_id=None):
 
     if user not in data['referred']:
         data['referred'][user] = 0
+        data['username'][user] = bot.get_chat(user_id).username or bot.get_chat(user_id).first_name
     save_users_data(data)
 
     ref_link = f"https://telegram.me/{bot_name}?start={user_id}"
@@ -466,7 +485,7 @@ def process_broadcast(message, broadcast_type):
                     bot.send_photo(int(user_id), message.photo[-1].file_id, caption=caption)
                 elif broadcast_type == 'video' and message.video:
                     caption = message.caption or ""
-                    bot.send_video(int(user_id), message.video.file_id, caption=caption)
+                    bot.send_video(int(user_id), message.video.file_id, caption=caption, protect_content=True)
                 success_count += 1
                 time.sleep(0.05)
             except Exception as e:
@@ -486,6 +505,8 @@ def process_broadcast(message, broadcast_type):
                     del data['withd'][user_id]
                     del data['id'][user_id]
                     del data['refer'][user_id]
+                    del data['phone_number'][user_id]
+                    del data['username'][user_id]
             save_users_data(data)
 
         bot.send_message(OWNER_ID, f"🎉 Broadcast yakunlandi!\n\n✅ Muvafaqiyatli: {success_count}\n\n❌ Muvaffaqiyatsiz: {fail_count}\n\n🚫 Bloklangan: {len(blocked_users)}")
@@ -493,7 +514,7 @@ def process_broadcast(message, broadcast_type):
 
     except Exception as e:
         bot.reply_to(message, f"⚠️ Xatolik!\n\n{str(e)}")
-        bot.send_message(OWNER_ID, f"⚖ Broadcast xatoligi: {str(e)}")
+        bot.send_message(OWNER_ID, f"⚠️ Broadcast xatoligi: {str(e)}")
 
 # Matnli xabarlar
 @bot.message_handler(content_types=['text'])
@@ -518,6 +539,7 @@ def send_text(message):
                         data['balance'][ref_id] = data['balance'].get(ref_id, 0) + Per_Refer
                         data['referred'][ref_id] = data['referred'].get(ref_id, 0) + 1
                         bot.send_message(ref_id, f"🎁 Do‘stingiz qo‘shildi!\n\nSizga +{Per_Refer} {TOKEN}!")
+                    data['username'][user] = username
                     save_users_data(data)
 
                 markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
