@@ -22,16 +22,22 @@ Per_Refer = 1
 
 # Fanlar ro‘yxati
 SUBJECTS = {
-    "immunology": {"name": "Immunologiya", "desc": "Immun tizimi haqida"},
-    "cardiology": {"name": "Kardiologiya", "desc": "Yurak va qon tomirlari"},
-    "anatomy": {"name": "Anatomiya", "desc": "Inson tanasi tuzilishi"},
-    "pathology": {"name": "Patologiya", "desc": "Kasalliklar tahlili"},
-    "pharmacology": {"name": "Farmakologiya", "desc": "Dori vositalari"},
-    "surgery": {"name": "Jarrohlik", "desc": "Operatsion texnikalar"},
-    "pediatrics": {"name": "Pediatriya", "desc": "Bolalar salomatligi"},
-    "neurology": {"name": "Nevrologiya", "desc": "Nerv tizimi kasalliklari"},
-    "endocrinology": {"name": "Endokrinologiya", "desc": "Gormonal tizim"},
-    "oncology": {"name": "Onkologiya", "desc": "Saraton kasalliklari"}
+    "biochemistry": {"name": "Biochemistry", "category": "GENERAL PRINCIPLES"},
+    "immunology": {"name": "Immunology", "category": "GENERAL PRINCIPLES"},
+    "microbiology": {"name": "Microbiology", "category": "GENERAL PRINCIPLES"},
+    "pathology": {"name": "Pathology", "category": "GENERAL PRINCIPLES"},
+    "pharmacology": {"name": "Pharmacology", "category": "GENERAL PRINCIPLES"},
+    "public_health_sciences": {"name": "Public Health Sciences", "category": "GENERAL PRINCIPLES"},
+    "cardiovascular": {"name": "Cardiovascular", "category": "ORGAN SYSTEMS"},
+    "endocrine": {"name": "Endocrine", "category": "ORGAN SYSTEMS"},
+    "gastrointestinal": {"name": "Gastrointestinal", "category": "ORGAN SYSTEMS"},
+    "hematology_oncology": {"name": "Hematology and Oncology", "category": "ORGAN SYSTEMS"},
+    "musculoskeletal_skin_connective": {"name": "Musculoskeletal, Skin, and Connective Tissue", "category": "ORGAN SYSTEMS"},
+    "neurology_special_senses": {"name": "Neurology and Special Senses", "category": "ORGAN SYSTEMS"},
+    "psychiatry": {"name": "Psychiatry", "category": "ORGAN SYSTEMS"},
+    "renal": {"name": "Renal", "category": "ORGAN SYSTEMS"},
+    "reproductive": {"name": "Reproductive", "category": "ORGAN SYSTEMS"},
+    "respiratory": {"name": "Respiratory", "category": "ORGAN SYSTEMS"}
 }
 
 bot = telebot.TeleBot(BOT_TOKEN)
@@ -104,10 +110,25 @@ def menu(user_id, message_id=None):
     else:
         bot.send_message(user_id, text, reply_markup=markup)
 
+# Toifalar menyusi
+def categories_menu(user_id, message_id=None):
+    markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
+    markup.add("GENERAL PRINCIPLES", "ORGAN SYSTEMS")
+    markup.row("⬅️ Ortga")
+    
+    text = "📚 Toifa tanlang:"
+    if message_id:
+        try:
+            bot.edit_message_text(text, user_id, message_id, reply_markup=markup)
+        except:
+            bot.send_message(user_id, text, reply_markup=markup)
+    else:
+        bot.send_message(user_id, text, reply_markup=markup)
+
 # Fanlar menyusi
-def subjects_menu(user_id, message_id=None):
+def subjects_menu(user_id, category, message_id=None):
     markup = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
-    subject_buttons = [f"📖 {info['name']}" for info in SUBJECTS.values()]
+    subject_buttons = [f"📖 {info['name']}" for key, info in SUBJECTS.items() if info['category'] == category]
     for i in range(0, len(subject_buttons), 2):
         markup.row(*subject_buttons[i:i+2])
     markup.row("⬅️ Ortga")
@@ -125,18 +146,26 @@ def subjects_menu(user_id, message_id=None):
     balance = data['balance'].get(str(user_id), 0)
     available_lessons = balance // 5
     
-    text = "📚 Fan tanlang:\n\n"
+    text = f"📚 {category} fanlarini tanlang:\n\n"
     for subject_key, info in SUBJECTS.items():
-        text += f"📖 {info['name']} ({lessons_count.get(subject_key, 0)} ta dars)\n{info['desc']}\n\n"
-    text += f"💰 Sizda {available_lessons} ta darsga kirish imkoni bor."
+        if info['category'] == category:
+            text += f"📖 {info['name']} ({lessons_count.get(subject_key, 0)} ta dars)\n\n"
+    text += f"💰 Sizda {available_lessons} ta darsga kirish imkoni bor.\n\n"
+    text += "Ko‘proq videolarni qo‘lga kiritish uchun do‘stlaringizni taklif qiling yoki barcha videolarni hoziroq qo‘lga kiritish uchun obunani harid qiling!"
+    
+    markup_inline = telebot.types.InlineKeyboardMarkup()
+    markup_inline.add(telebot.types.InlineKeyboardButton(text="💳 Obuna harid qilish", url="https://t.me/medstone_usmle_admin"))
     
     if message_id:
         try:
-            bot.edit_message_text(text, user_id, message_id, reply_markup=markup)
+            bot.edit_message_text(text, user_id, message_id, reply_markup=markup_inline)
+            bot.edit_message_reply_markup(user_id, message_id, reply_markup=markup)
         except:
-            bot.send_message(user_id, text, reply_markup=markup)
+            bot.send_message(user_id, text, reply_markup=markup_inline)
+            bot.send_message(user_id, "Menyu:", reply_markup=markup)
     else:
-        bot.send_message(user_id, text, reply_markup=markup)
+        bot.send_message(user_id, text, reply_markup=markup_inline)
+        bot.send_message(user_id, "Menyu:", reply_markup=markup)
 
 # Google Sheets-dan foydalanuvchilar ma'lumotlarini yuklash
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(2), retry=retry_if_exception_type(Exception))
@@ -280,7 +309,7 @@ def send_gift_video(user_id, subject, message_id=None):
     sent_videos = []
 
     if video_count == 0:
-        text = f"⚠️ Ballaringiz yetarli emas!\n\nHozirda {lessons_count} ta dars mavjud.\n\nDo‘stlaringizni taklif qilib ball to‘plang yoki obunani harid qiling!"
+        text = f"⚠️ Ballaringiz yetarli emas!\n\nHozirda {lessons_count} ta dars mavjud.\n\nKo‘proq videolarni qo‘lga kiritish uchun do‘stlaringizni taklif qiling yoki barcha videolarni hoziroq qo‘lga kiritish uchun obunani harid qiling!"
         markup = telebot.types.InlineKeyboardMarkup()
         markup.add(telebot.types.InlineKeyboardButton(text="💳 Obuna harid qilish", url="https://t.me/medstone_usmle_admin"))
         if message_id:
@@ -300,20 +329,22 @@ def send_gift_video(user_id, subject, message_id=None):
             bot.send_video(user_id, catalog[key], supports_streaming=True, protect_content=True)
             sent_videos.append(video_index)
         else:
-            text = f"⚠️ {SUBJECTS[subject]['name']} {video_index}-dars topilmadi.\n\nJami {lessons_count} ta dars mavjud.\n\nAdmin bilan bog‘laning!"
+            text = f"⚠️ {SUBJECTS[subject]['name']} {video_index}-dars topilmadi.\n\nJami {lessons_count} ta dars mavjud.\n\nKo‘proq videolarni qo‘lga kiritish uchun do‘stlaringizni taklif qiling yoki barcha videolarni hoziroq qo‘lga kiritish uchun obunani harid qiling!"
+            markup = telebot.types.InlineKeyboardMarkup()
+            markup.add(telebot.types.InlineKeyboardButton(text="💳 Obuna harid qilish", url="https://t.me/medstone_usmle_admin"))
             if message_id:
                 try:
-                    bot.edit_message_text(text, user_id, message_id, reply_markup=None)
+                    bot.edit_message_text(text, user_id, message_id, reply_markup=markup)
                 except:
-                    bot.send_message(user_id, text)
+                    bot.send_message(user_id, text, reply_markup=markup)
             else:
-                bot.send_message(user_id, text)
+                bot.send_message(user_id, text, reply_markup=markup)
             menu(user_id, message_id)
             return
 
     if sent_videos:
         remaining_lessons = lessons_count - len(sent_videos)
-        text = f"🎥 {', '.join(sent_videos)}-darslar jo‘natildi!\n\n📚 {SUBJECTS[subject]['name']} bo‘yicha {remaining_lessons} ta dars qoldi.\n\nBarcha videolarni hoziroq qo‘lga kiritish uchun obunani harid qiling!"
+        text = f"🎥 {', '.join(sent_videos)}-darslar jo‘natildi!\n\n📚 {SUBJECTS[subject]['name']} bo‘yicha {remaining_lessons} ta dars qoldi.\n\nKo‘proq videolarni qo‘lga kiritish uchun do‘stlaringizni taklif qiling yoki barcha videolarni hoziroq qo‘lga kiritish uchun obunani harid qiling!"
         markup = telebot.types.InlineKeyboardMarkup()
         markup.add(telebot.types.InlineKeyboardButton(text="💳 Obuna harid qilish", url="https://t.me/medstone_usmle_admin"))
         if message_id:
@@ -570,7 +601,10 @@ def send_text(message):
             send_invite_link(user_id, message_id)
 
         elif text == "📚 Fanlar":
-            subjects_menu(user_id, message_id)
+            categories_menu(user_id, message_id)
+
+        elif text in ["GENERAL PRINCIPLES", "ORGAN SYSTEMS"]:
+            subjects_menu(user_id, text, message_id)
 
         elif text == "📊 Statistika" and user_id == OWNER_ID:
             data = load_users_data()
