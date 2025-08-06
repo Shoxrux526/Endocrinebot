@@ -112,7 +112,24 @@ def subjects_menu(user_id, message_id=None):
         markup.row(*subject_buttons[i:i+2])
     markup.row("⬅️ Ortga")
     
-    text = "📚 Fan tanlang:"
+    # Har bir fan bo‘yicha darslar sonini hisoblash
+    catalog = load_video_catalog()
+    lessons_count = {subject: 0 for subject in SUBJECTS}
+    for key in catalog:
+        subject_key = key.split('_')[0]
+        if subject_key in lessons_count:
+            lessons_count[subject_key] += 1
+    
+    # Foydalanuvchi balansini olish
+    data = load_users_data()
+    balance = data['balance'].get(str(user_id), 0)
+    available_lessons = balance // 5
+    
+    text = f"📚 Fan tanlang:\n\n"
+    for subject_key, info in SUBJECTS.items():
+        text += f"🎓 {info['name']}: {lessons_count.get(subject_key, 0)} ta dars\n"
+    text += f"\n💰 Sizda {available_lessons} ta darsga kirish imkoni bor."
+    
     if message_id:
         try:
             bot.edit_message_text(text, user_id, message_id, reply_markup=markup)
@@ -252,10 +269,11 @@ def send_gift_video(user_id, subject, message_id=None):
     catalog = load_video_catalog(subject)
     balance = data['balance'].get(str(user_id), 0)
     video_count = balance // 5
+    lessons_count = len([key for key in catalog if key.startswith(subject.lower())])
     sent_videos = []
 
     if video_count == 0:
-        text = "⚠️ Ballaringiz yetarli emas! Do‘stlaringizni taklif qilib ball to‘plang!"
+        text = f"⚠️ Ballaringiz yetarli emas! Hozirda {lessons_count} ta dars mavjud.\nDo‘stlaringizni taklif qilib ball to‘plang yoki to‘lov qiling!"
         if message_id:
             try:
                 bot.edit_message_text(text, user_id, message_id, reply_markup=None)
@@ -273,7 +291,7 @@ def send_gift_video(user_id, subject, message_id=None):
             bot.send_video(user_id, catalog[key], supports_streaming=True)
             sent_videos.append(video_index)
         else:
-            text = f"⚠️ {SUBJECTS[subject]['name']} {video_index}-dars topilmadi. Admin bilan bog‘laning!"
+            text = f"⚠️ {SUBJECTS[subject]['name']} {video_index}-dars topilmadi. Jami {lessons_count} ta dars mavjud. Admin bilan bog‘laning!"
             if message_id:
                 try:
                     bot.edit_message_text(text, user_id, message_id, reply_markup=None)
@@ -285,7 +303,8 @@ def send_gift_video(user_id, subject, message_id=None):
             return
 
     if sent_videos:
-        text = f"🎥 {', '.join(sent_videos)}-darslar jo‘natildi! {'Ajoyib!' if video_count >= 3 else 'Ko‘proq dars uchun do‘st taklif qiling!'}"
+        remaining_lessons = lessons_count - len(sent_videos)
+        text = f"🎥 {', '.join(sent_videos)}-darslar jo‘natildi!\n📚 {SUBJECTS[subject]['name']} bo‘yicha {remaining_lessons} ta dars qoldi."
         if message_id:
             try:
                 bot.edit_message_text(text, user_id, message_id, reply_markup=None)
